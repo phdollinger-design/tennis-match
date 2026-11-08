@@ -44,45 +44,52 @@ const ATEM_AUS_MS = 6000;
 
 // Trainer-Modus: Ziele, Niveaus, Dauer
 const ZIELE = ['Aufschlag', 'Grundlinie', 'Netzspiel', 'Return', 'Kondition', 'Mental'];
-const NIVEAUS = ['Anfänger', 'Fortgeschritten', 'Wettkampf'];
+const NIVEAUS = ['Anfänger', 'Fortgeschritten'];
 const DAUERN = [60, 90, 120];
 const KOERPER_TYPEN = ['Training', 'Match', 'Ruhetag'];
 
-// Übungen je Ziel. min = ab welchem Niveau die Übung passt (0 Anfänger, 1 Fortgeschritten, 2 Wettkampf)
+// Übungen je Ziel. min = ab welchem Niveau die Übung passt (0 Anfänger, 1 Fortgeschritten)
 const UEBUNGEN = {
   Aufschlag: [
     { name: 'Ziele treffen', min: 0, text: 'Mit Körbchen oder Kreide Zielfelder markieren. 10 Aufschläge, Treffer zählen.' },
     { name: 'Bewegung im Aufschlag', min: 0, text: 'Ballwurf, Schwung, Treffpunkt. Erst langsam, dann Tempo steigern.' },
+    { name: 'Stand und Ballwurf', min: 0, text: 'Ohne Schläger: Ballwurf üben, bis der Ball immer an derselben Stelle oben ist.' },
     { name: 'Zweiter Aufschlag', min: 1, text: 'Nur zweite Aufschläge. Ziel: 8 von 10 ins Feld.' },
-    { name: 'Aufschlag unter Druck', min: 2, text: 'Satzball simulieren: 3 von 4 Aufschlägen müssen ins Feld.' },
+    { name: 'Aufschlag unter Druck', min: 1, text: 'Satzball simulieren: 3 von 4 Aufschlägen müssen ins Feld.' },
+    { name: 'Aufschlag mit Ziel', min: 1, text: 'Drei Zielzonen auf dem Feld. Jeder Treffer in eine Zone zählt einen Punkt.' },
   ],
   Grundlinie: [
     { name: 'Cross-Spiel', min: 0, text: 'Cross-Bälle mit Partner, erst nur Vorhand, dann nur Rückhand.' },
     { name: 'Drei-Zonen-Spiel', min: 0, text: 'Ziele in drei Zonen: tief, Mitte, kurz. Treffer in der Zone zählt einen Punkt.' },
+    { name: 'Gleichmäßig spielen', min: 0, text: 'Ballwechsel an der Grundlinie, Ziel: 20 Schläge ohne Fehler.' },
     { name: 'Richtungswechsel', min: 1, text: 'Abwechselnd diagonal und längs spielen, Tempo langsam steigern.' },
-    { name: 'Eckenlaufen', min: 2, text: 'Trainer spielt in die Ecken, du läufst und kehrst nach jedem Schlag in die Mitte zurück.' },
+    { name: 'Eckenlaufen', min: 1, text: 'Trainer spielt in die Ecken, du läufst und kehrst nach jedem Schlag in die Mitte zurück.' },
+    { name: 'Tempo-Wechsel', min: 1, text: 'Abwechselnd langsamer Ball und harter Ball. Ziel: sauber bleiben bei beiden.' },
   ],
   Netzspiel: [
     { name: 'Volley-Wand', min: 0, text: 'Kurze Volleys an die Wand oder zum Partner. 30 Sekunden ohne Fehler zählen.' },
+    { name: 'Halbvolley üben', min: 0, text: 'Bälle knapp über dem Boden am Netz kontrolliert zurückspielen.' },
     { name: 'Angriff nach tiefem Ball', min: 1, text: 'Erst Grundlinie, dann ans Netz. Angriff nach jedem tiefen Ball.' },
-    { name: 'Zwei gegen einen am Netz', min: 2, text: 'Zwei am Netz gegen einen auf der Grundlinie. Ziel: Punkt am Netz.' },
+    { name: 'Zwei gegen einen am Netz', min: 1, text: 'Zwei am Netz gegen einen auf der Grundlinie. Ziel: Punkt am Netz.' },
   ],
   Return: [
     { name: 'Return-Zone', min: 0, text: 'Trainer schlägt Aufschläge, du gibst jeden Return ins Feld.' },
-    { name: 'Return mit Schritt', min: 1, text: 'Einen Schritt nach vorne beim Return, Ball früh nehmen.' },
-    { name: 'Return-Angriff', min: 2, text: 'Erster Return gezielt in eine Ecke, damit der Gegner unter Druck kommt.' },
+    { name: 'Return mit Schritt', min: 0, text: 'Einen Schritt nach vorne beim Return, Ball früh nehmen.' },
+    { name: 'Return-Ziele', min: 1, text: 'Return gezielt in drei Zonen, damit der Gegner unter Druck kommt.' },
+    { name: 'Zweiter-Aufschlag-Return', min: 1, text: 'Nur Returns gegen zweite Aufschläge. Ziel: aggressiv und trotzdem sicher.' },
   ],
   Kondition: [
     { name: 'Intervall-Sprints', min: 0, text: '30 Sekunden Sprint zu den Linien, 30 Sekunden gehen. 8 Runden.' },
     { name: 'Koordinationsleiter', min: 0, text: 'Schnelle Füße auf Leiter oder Hütchen, 20 Sekunden pro Übung.' },
     { name: 'Dauer-Rallye', min: 1, text: 'Ballwechsel ohne Fehler so lange wie möglich, dann 30 Sekunden Pause.' },
-    { name: 'Spielnahe Belastung', min: 2, text: 'Fünf Ballwechsel voll, dann 40 Sekunden Pause. 6 Serien.' },
+    { name: 'Spielnahe Belastung', min: 1, text: 'Fünf Ballwechsel voll, dann 40 Sekunden Pause. 6 Serien.' },
   ],
   Mental: [
     { name: 'Punkt-Routine', min: 0, text: 'Vor jedem Aufschlag immer gleich: Ball prellen, atmen, Ziel anschauen.' },
     { name: 'Fehler abhaken', min: 0, text: 'Nach jedem Fehler: einmal atmen, kurz benennen, weiterspielen.' },
+    { name: 'Positiv bleiben', min: 0, text: 'Nach jedem gewonnenen Punkt einen Satz über dich sagen, der dir hilft.' },
     { name: 'Satzball-Spiel', min: 1, text: 'Nur Matchsituationen spielen. Jeder Punkt zählt.' },
-    { name: 'Tiebreak unter Druck', min: 2, text: 'Tiebreak spielen, Zuschauer simulieren, keine Ausreden.' },
+    { name: 'Druck-Tiebreak', min: 1, text: 'Tiebreak spielen, Zuschauer simulieren, keine Ausreden.' },
   ],
 };
 
@@ -90,7 +97,6 @@ const UEBUNGEN = {
 const SPIELE = [
   'Punktespiel auf halbem Feld, ein Ballwechsel bis 3 Punkte.',
   'Kurzes Satzspiel bis 4 Spiele, mit einer Vorgabe für jeden Punkt.',
-  'Trainingsmatch nach echten Regeln, mit Matchplan.',
 ];
 
 // --- Zustand: was gerade auf dem Bildschirm passiert (nur im Speicher der Seite) ---
@@ -312,7 +318,7 @@ function render() {
   };
   const ansicht = ansichten[aktiverTab]();
 
-  $('inhalt').replaceChildren(ansicht);
+  $('inhalt').replaceChildren(...[erinnerungKarte(), ansicht].filter(Boolean));
 }
 
 // ---------- Tab 1: Vor dem Match (geführter Ablauf in 4 Schritten) ----------
@@ -1032,7 +1038,39 @@ function exportierenDatei() {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+  Daten.einstellungSpeichern('letzteSicherung', new Date().toISOString());   // für die Erinnerung
   zeigeToast('Sicherung wird heruntergeladen');
+  render();   // Erinnerung verschwindet sofort
+}
+
+/** Erinnerung an die Sicherung: erscheint, wenn die letzte Sicherung 14 Tage oder älter ist. */
+function erinnerungKarte() {
+  const jetzt = Date.now();
+  const aufgeschoben = Daten.einstellungLesen('erinnerungAufschieben');
+  if (aufgeschoben && new Date(aufgeschoben).getTime() > jetzt) return null;
+
+  const hatDaten = Daten.alleMatches().length > 0 || Daten.alleGegner().length > 0;
+  if (!hatDaten) return null;
+
+  const letzte = Daten.einstellungLesen('letzteSicherung');
+  const tage = letzte ? Math.floor((jetzt - new Date(letzte).getTime()) / 86400000) : null;
+  if (tage !== null && tage < 14) return null;
+
+  return el('div', { class: 'karte erinnerung' },
+    el('strong', {}, 'Zeit für eine Sicherung'),
+    el('p', { class: 'muted' }, tage === null
+      ? 'Du hast noch nie eine Sicherung gemacht.'
+      : `Deine letzte Sicherung ist ${tage} Tage her.`),
+    el('p', { class: 'muted' }, 'Auf dem iPhone gehen die Daten verloren, wenn du die App löschst. Eine Sicherung schützt dich davor.'),
+    el('div', { class: 'knopf-reihe' },
+      el('button', { class: 'btn btn-primaer', onclick: exportierenDatei }, 'Jetzt sichern'),
+      el('button', {
+        class: 'btn btn-sekundaer',
+        onclick() {
+          Daten.einstellungSpeichern('erinnerungAufschieben', new Date(Date.now() + 3 * 86400000).toISOString());
+          render();
+        },
+      }, 'In 3 Tagen')));
 }
 
 /** Öffnet die Dateiauswahl, liest eine Sicherungsdatei und ersetzt die Daten (nach Nachfrage). */
@@ -1137,47 +1175,78 @@ function koerperTipps() {
   return tipps;
 }
 
-/** Tipps zu einem Gegner, aus Notizen, Bilanz und den letzten Matches. */
+/** Tipps zu einem Gegner und zu dir, sortiert nach Taktik, Kopf, Körper und Training. */
 function tippsFuer(g) {
-  const tipps = [];
-  if (g.schwaechen && g.schwaechen.trim()) tipps.push(`Seine Schwächen laut deinen Notizen: ${g.schwaechen.trim()}. Spiel gezielt darauf.`);
-  if (g.staerken && g.staerken.trim()) tipps.push(`Achte auf seine Stärken: ${g.staerken.trim()}.`);
+  const t = { taktik: [], kopf: [], koerper: koerperTipps(), training: [] };
+
+  // Notizen zum Gegner
+  if (g.schwaechen && g.schwaechen.trim()) t.taktik.push(`Seine Schwächen laut deinen Notizen: ${g.schwaechen.trim()}. Spiel gezielt darauf.`);
+  if (g.staerken && g.staerken.trim()) t.taktik.push(`Seine Stärken: ${g.staerken.trim()}. Nimm ihm diese Waffe, wenn du kannst.`);
+
+  // Tipp je nach Spielstil
+  const stilTipps = {
+    'Grundlinienspieler': 'Er spielt von der Grundlinie: Nimm ihm mit Tempowechsel den Rhythmus und geh ab und zu ans Netz.',
+    'Angreifer/Netzspieler': 'Er kommt ans Netz: Übe Passierbälle und halte den Lob sauber.',
+    'Konterspieler': 'Er wartet auf deinen Fehler: Spiel geduldig und erzwinge den Punkt nicht zu früh.',
+    'Aufschlagspieler': 'Er lebt vom Aufschlag: Nimm den Return früh und bring den Ball ins Spiel.',
+    'Allrounder': 'Er wechselt viel: Halte deine eigene Linie und warte auf den passenden Ball.',
+  };
+  if (stilTipps[g.spielstil]) t.taktik.push(stilTipps[g.spielstil]);
 
   const spiele = Daten.matchesVon(g.id).filter((m) => m.status === 'nachbereitet');
   if (!spiele.length) {
-    tipps.push('Nach dem nächsten Match trägst du das Ergebnis ein. Dann bekommst du hier Tipps aus deiner Bilanz.');
-    return [...tipps, ...koerperTipps()];
+    t.training.push('Nach dem nächsten Match trägst du das Ergebnis ein. Dann bekommst du hier Tipps aus deiner Bilanz.');
+    return t;
   }
 
+  // Bilanz und letzte Matches
   const b = Daten.bilanz(g.id);
-  if (b.niederlagen > b.siege) {
-    tipps.push(`Du hast gegen ihn öfter verloren (${b.siege} : ${b.niederlagen}). Starte den Plan mit dem Punkt, den du sicher umsetzen kannst.`);
+  if (b.niederlagen > b.siege) t.taktik.push(`Du hast gegen ihn öfter verloren (${b.siege} : ${b.niederlagen}). Starte den Plan mit dem Punkt, den du sicher umsetzen kannst.`);
+  const letzt = spiele[0];
+  if (letzt.nichtFunktioniert) t.taktik.push(`Letztes Mal hat nicht geklappt: „${letzt.nichtFunktioniert}“. Probiere dieses Mal eine andere Idee.`);
+  if (letzt.funktioniert) t.taktik.push(`Letztes Mal hat geklappt: „${letzt.funktioniert}“. Behalte das bei.`);
+  if ((letzt.planAuswertung || []).filter((p) => p === 'nein').length >= 2) {
+    t.taktik.push('Im letzten Match hat der Plan oft nicht geklappt. Nimm dieses Mal nur zwei Punkte und wiederhole sie.');
   }
 
-  const letzt = spiele[0];
-  if (letzt.nichtFunktioniert) tipps.push(`Letztes Mal hat nicht geklappt: „${letzt.nichtFunktioniert}“. Probiere dieses Mal eine andere Idee.`);
-  if (letzt.funktioniert) tipps.push(`Letztes Mal hat geklappt: „${letzt.funktioniert}“. Behalte das bei.`);
-
-  const nichtGeklappt = (letzt.planAuswertung || []).filter((p) => p === 'nein').length;
-  if (nichtGeklappt >= 2) tipps.push('Im letzten Match hat der Plan oft nicht geklappt. Nimm dieses Mal nur zwei Punkte und wiederhole sie.');
-
+  // Kopf: Druck, Atem, Serie von Niederlagen
   const koepfe = spiele.map((m) => m.kopf).filter((k) => typeof k === 'number');
   if (koepfe.length) {
-    const schnitt = koepfe.reduce((a, b) => a + b, 0) / koepfe.length;
-    if (schnitt < 5) {
-      tipps.push(`Dein Kopf war in deinen Matches im Schnitt bei ${schnitt.toFixed(1).replace('.', ',')} von 10. Plane die Atemübung fest ein.`);
-    }
+    const schnitt = koepfe.reduce((a, c) => a + c, 0) / koepfe.length;
+    if (schnitt < 5) t.kopf.push(`Dein Kopf war in deinen Matches im Schnitt bei ${schnitt.toFixed(1).replace('.', ',')} von 10. Plane die Atemübung fest ein.`);
+    if (letzt.kopf && letzt.kopf < 4) t.kopf.push('Beim letzten Match warst du unter Druck. Starte mit der Atemübung und lies deinen Satz gegen den Druck.');
   }
-  return [...tipps, ...koerperTipps()];
+  if (spiele.length >= 2 && spiele[0].sieg === false && spiele[1].sieg === false) {
+    t.kopf.push('Zwei Niederlagen in Folge gegen ihn. Denk an deinen Satz und nicht an das alte Ergebnis.');
+  }
+  if (b.siege > 0 && b.niederlagen === 0) t.kopf.push('Du hast gegen ihn bisher gewonnen. Bleib konzentriert und spiel deinen Plan.');
+
+  // Training: passende Ziele aus Schwächen und Notizen
+  const text = `${g.schwaechen || ''} ${letzt.nichtFunktioniert || ''}`.toLowerCase();
+  const zuZiel = [
+    [/aufschlag/, 'Aufschlag'], [/return/, 'Return'], [/volley|netz/, 'Netzspiel'],
+    [/vorhand|rückhand|grundlinie|tempo/, 'Grundlinie'], [/kondition|ausdauer|kraft|laufen/, 'Kondition'],
+    [/kopf|nerv|druck|mental/, 'Mental'],
+  ];
+  for (const [muster, ziel] of zuZiel) {
+    if (muster.test(text)) t.training.push(`Übe das Ziel „${ziel}“ im Trainer-Modus, damit du beim nächsten Mal besser vorbereitet bist.`);
+  }
+
+  return t;
 }
 
-/** Die Tipps als Karte. Gibt null zurück, wenn es nichts zu sagen gibt. */
+/** Die Tipps als Karte, nach Abschnitten. Gibt null zurück, wenn es nichts zu sagen gibt. */
 function tippsKarte(g) {
-  const tipps = tippsFuer(g);
-  if (!tipps.length) return null;
+  const t = tippsFuer(g);
+  const abschnitte = [['Taktik', t.taktik], ['Kopf', t.kopf], ['Körper', t.koerper], ['Training', t.training]]
+    .filter(([, liste]) => liste.length);
+  if (!abschnitte.length) return null;
   return el('div', { class: 'karte' },
     el('span', { class: 'label' }, 'Tipps für dich'),
-    ...tipps.map((t) => el('p', {}, `• ${t}`)));
+    ...abschnitte.flatMap(([titel, liste]) => [
+      el('p', { class: 'sektion-titel' }, titel),
+      ...liste.map((x) => el('p', {}, `• ${x}`)),
+    ]));
 }
 
 /** Ein Regler mit Anzeige des Wertes (z. B. Intensität 1 bis 10). */

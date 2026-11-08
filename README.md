@@ -68,7 +68,7 @@ So kannst du die App auf dem iPhone öffnen und auf den Home-Bildschirm legen. D
 > **Wichtig zu den Daten:** iPhone-Apps vom Home-Bildschirm haben einen **eigenen Speicher**, getrennt von Safari. Deine Daten vom MacBook oder aus Safari sind dort nicht automatisch da. Nutze dafür **Einstellungen → Daten exportieren** (auf dem alten Gerät) und **Einstellungen → Daten importieren** (auf dem neuen Gerät).
 
 ### Änderungen später veröffentlichen
-Wenn du etwas an der App änderst, lade die geänderten Dateien auf GitHub hoch (wie in Schritt C). Denk daran, in `service-worker.js` die Zeile `CACHE_NAME` hochzuzählen (z. B. von `tennis-match-v1` auf `tennis-match-v2`). Sonst sieht das iPhone die neue Version erst später.
+Wenn du etwas an der App änderst, lade die geänderten Dateien auf GitHub hoch (wie in Schritt C), die alten Dateien werden dabei ersetzt. Du musst nichts mehr hochzählen: Die App lädt bei bestehender Verbindung immer die neueste Version. Nach dem Hochladen kann es ein paar Minuten dauern, bis GitHub Pages die neue Version zeigt.
 
 ---
 
@@ -92,12 +92,14 @@ Wenn du etwas an der App änderst, lade die geänderten Dateien auf GitHub hoch 
 - **Vor dem Match:** Wähle einen Gegner (oder lege ihn schnell an), siehst seine Infos und deine letzten Notizen. Dann drei Matchplan-Punkte, eine kurze Atemübung und dein Satz gegen den Druck. „Bereit – los geht’s“ speichert das Match als geplant.
 - **Nach dem Match:** Offene Matches antippen, Ergebnis in Sätzen eintragen (z. B. 6:4, 3:6, 10:7 mit Häkchen bei Match-Tiebreak), Art wählen, Matchplan bewerten und die drei Fragen beantworten.
 - **Gegner:** Kartei mit Suche. Antippen zeigt Bilanz, Angaben, **Tipps für dich** und alle Matches gegen ihn. Die Tipps kommen aus deinen Notizen, deiner Bilanz und deinen letzten Matches. Im Schritt „Plan“ siehst du sie auch.
-- **Training (Trainer-Modus):** Gib die Anzahl der Spieler, das Niveau, das Ziel (Aufschlag, Grundlinie, Netzspiel, Return, Kondition, Mental) und die Dauer ein. Die App erstellt eine Stunde mit Aufwärmen, Übungen, Spiel und Ausklang. Mit „Stunde speichern“ bleibt sie erhalten.
+- **Training (Trainer-Modus):** Gib die Anzahl der Spieler, das Niveau (Anfänger oder Fortgeschritten), das Ziel (Aufschlag, Grundlinie, Netzspiel, Return, Kondition, Mental) und die Dauer ein. Die App erstellt eine Stunde mit Aufwärmen, Übungen, Spiel und Ausklang. Mit „Stunde speichern“ bleibt sie erhalten.
 - **Körper (Belastung):** Trage nach jedem Training oder Match Dauer, Intensität, Schlaf und Erholung ein. Die App zeigt deine Belastung der letzten 7 Tage und warnt bei viel Belastung oder wenig Schlaf.
 - **LK:** Trage deine Leistungsklasse mit Datum ein. Der Verlauf zeigt die LK-Einträge zusammen mit deinen Matches. Die LK rechnet die App nicht selbst aus, sie kommt vom Verband.
 - **Zahnrad oben rechts:** Satz gegen den Druck ändern, Daten exportieren und importieren, alle Daten löschen.
 
 **Tipp:** Exportiere ab und zu eine Sicherung. So geht nichts verloren, auch wenn der Browser seine Daten löscht.
+
+**Sicherungs-Erinnerung:** Ist deine letzte Sicherung 14 Tage oder älter, zeigt die App oben eine Erinnerung. Mit „In 3 Tagen“ schiebst du sie auf. Die Erinnerung erscheint nur, wenn du die App öffnest. Sie ist keine Benachrichtigung auf dem Handy.
 
 ---
 

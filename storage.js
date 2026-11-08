@@ -229,6 +229,18 @@ export function satzSpeichern(text) {
   schreiben(daten);
 }
 
+/** Liest eine Einstellung (z. B. 'letzteSicherung'). Gibt null zurück, wenn es sie nicht gibt. */
+export function einstellungLesen(name) {
+  return lesen().einstellungen[name] || null;
+}
+
+/** Speichert eine Einstellung. */
+export function einstellungSpeichern(name, wert) {
+  const daten = lesen();
+  daten.einstellungen[name] = wert;
+  schreiben(daten);
+}
+
 // ---------------------------------------------------------------------------
 // SICHERN, WIEDERHERSTELLEN, LÖSCHEN
 // ---------------------------------------------------------------------------

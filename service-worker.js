@@ -2,13 +2,12 @@
  * service-worker.js – macht die App offline nutzbar.
  *
  * Ein Service Worker ist ein kleines Hilfsprogramm des Browsers. Er speichert die
- * Dateien der App beim ersten Öffnen. Danach kommt die App auch ohne Internet.
- *
- * WICHTIG: Ändert man eine Datei der App, muss man CACHE_NAME hochzählen
- * (z. B. 'tennis-match-v2'). Sonst bekommt das iPhone die neue Version nicht.
+ * Dateien der App. Ist Internet da, lädt er immer die neueste Version aus dem Netz.
+ * Ist kein Internet da, nimmt er die gespeicherte Version. So musst du beim Update
+ * nichts mehr hochzählen.
  */
 
-const CACHE_NAME = 'tennis-match-v2';
+const CACHE_NAME = 'tennis-match-v3';
 
 // Alle Dateien, die zur App gehören
 const DATEIEN = [
@@ -40,23 +39,22 @@ self.addEventListener('activate', (ereignis) => {
   self.clients.claim();
 });
 
-// Jede Anfrage abfangen: erst aus dem Speicher, sonst aus dem Netz (und dann speichern)
+// Jede Anfrage abfangen: erst aus dem Netz (und dann speichern), sonst aus dem Speicher
 self.addEventListener('fetch', (ereignis) => {
-  // Nur Anfragen an unsere eigene Seite behandeln
+  // Nur GET-Anfragen behandeln
   if (ereignis.request.method !== 'GET') return;
 
   ereignis.respondWith(
-    caches.match(ereignis.request).then((gespeichert) => {
-      if (gespeichert) return gespeichert;
-
-      return fetch(ereignis.request)
-        .then((antwort) => {
-          // Neue Dateien gleich mitspeichern
-          const kopie = antwort.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(ereignis.request, kopie));
-          return antwort;
-        })
-        .catch(() => caches.match('index.html'));   // offline und nicht gespeichert: Startseite
-    })
+    fetch(ereignis.request)
+      .then((antwort) => {
+        // Neueste Version gleich mitspeichern
+        const kopie = antwort.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(ereignis.request, kopie));
+        return antwort;
+      })
+      .catch(() =>
+        // Kein Internet: gespeicherte Version nehmen, sonst die Startseite
+        caches.match(ereignis.request).then((gespeichert) => gespeichert || caches.match('index.html'))
+      )
   );
 });
