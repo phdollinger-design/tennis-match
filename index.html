@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <!-- Zeichensatz und Bildschirmgröße: viewport-fit=cover nutzt die ganze Fläche (inkl. Notch) -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <!-- Infos für den Browser und das iPhone (Home-Bildschirm, Vollbild) -->
+  <meta name="theme-color" content="#0B0C0A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tennis Match">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="style.css">
+  <title>Tennis Match</title>
+</head>
+<body>
+  <div class="app">
+
+    <!-- Kopfzeile: Titel und Zahnrad für die Einstellungen -->
+    <header class="kopf">
+      <h1 id="titel">Vor dem Match</h1>
+      <button id="btn-einstellungen" class="icon-btn" aria-label="Einstellungen">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.2h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.7h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5L19.4 13Zm-7.4 2.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Hier zeigt app.js den Inhalt des gerade gewählten Tabs an -->
+    <main id="inhalt" class="inhalt"></main>
+
+    <!-- Tab-Leiste unten: 3 Bereiche -->
+    <nav class="tabbar" aria-label="Hauptnavigation">
+      <button class="tab" data-tab="vor" aria-selected="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path fill="currentColor" d="M8 5v14l11-7z"/>
+        </svg>
+        <span>Vor dem Match</span>
+      </button>
+      <button class="tab" data-tab="nach" aria-selected="false">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+        </svg>
+        <span>Nach dem Match</span>
+      </button>
+      <button class="tab" data-tab="gegner" aria-selected="false">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4Z"/>
+        </svg>
+        <span>Gegner</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Formular-Fenster (kommt von unten): für Gegner, Nachbereitung und Einstellungen -->
+  <div id="sheet-hintergrund" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-titel">
+      <div class="sheet-kopf">
+        <button id="sheet-zurueck" class="text-btn">Schließen</button>
+        <h2 id="sheet-titel"></h2>
+        <span class="platzhalter"></span>
+      </div>
+      <div id="sheet-inhalt" class="sheet-inhalt"></div>
+    </div>
+  </div>
+
+  <!-- Bestätigungsfenster in der App (ersetzt den Browser-Dialog) -->
+  <div id="dialog-hintergrund" class="overlay dialog-overlay" hidden>
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-titel">
+      <h2 id="dialog-titel"></h2>
+      <p id="dialog-text" class="muted"></p>
+      <div class="dialog-knoepfe">
+        <button id="dialog-abbrechen" class="btn btn-sekundaer">Abbrechen</button>
+        <button id="dialog-ok" class="btn btn-primaer">Ja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kurze Meldung unten am Bildschirm, z. B. „Gespeichert“ -->
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Die eigentliche Logik (ein Modul, damit storage.js sauber eingebunden wird) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
