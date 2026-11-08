@@ -11,6 +11,9 @@
  *   gegner: [ { id, name, verein, lk, spielstil, staerken, schwaechen, notizen, erstelltAm } ],
  *   matches: [ { id, datum, gegnerId, art, matchplan, status, saetze, sieg,
  *                planAuswertung, funktioniert, nichtFunktioniert, kopf, erstelltAm } ],
+ *   belastung: [ { id, datum, typ, minuten, intensitaet, schlaf, erholung, notiz } ],
+ *   lk: [ { id, datum, wert, anlass } ],
+ *   trainingsstunden: [ { id, datum, gruppe, niveau, ziel, dauer, bloecke } ],
  *   einstellungen: { satz }
  * }
  */
@@ -27,6 +30,9 @@ function leer() {
     version: 1,
     gegner: [],
     matches: [],
+    belastung: [],        // Körper-Tab: Trainings- und Matchbelastung, Schlaf, Erholung
+    lk: [],               // LK-Tab: eingetragene Leistungsklassen mit Datum
+    trainingsstunden: [], // Training-Tab: gespeicherte Trainingsstunden
     einstellungen: { satz: STANDARD_SATZ },
   };
 }
@@ -42,6 +48,9 @@ function lesen() {
       ...daten,
       gegner: Array.isArray(daten.gegner) ? daten.gegner : [],
       matches: Array.isArray(daten.matches) ? daten.matches : [],
+      belastung: Array.isArray(daten.belastung) ? daten.belastung : [],
+      lk: Array.isArray(daten.lk) ? daten.lk : [],
+      trainingsstunden: Array.isArray(daten.trainingsstunden) ? daten.trainingsstunden : [],
       einstellungen: { ...leer().einstellungen, ...(daten.einstellungen || {}) },
     };
   } catch (fehler) {
@@ -165,6 +174,43 @@ export function letztesMatchMitPlan(gegnerId) {
 /** Das letzte nachbereitete Match gegen einen Gegner (für die Notizen). */
 export function letztesNachbereitetes(gegnerId) {
   return matchesVon(gegnerId).find((m) => m.status === 'nachbereitet') || null;
+}
+
+// ---------------------------------------------------------------------------
+// BELASTUNG, LK, TRAININGSSTUNDEN
+// Alle drei Listen funktionieren gleich: Eintrag mit id = ändern, ohne id = neu.
+// ---------------------------------------------------------------------------
+
+/** Alle Einträge einer Liste ('belastung', 'lk' oder 'trainingsstunden'), neueste zuerst nach Datum. */
+export function listeAlle(name) {
+  return lesen()[name]
+    .slice()
+    .sort((a, b) => (b.datum || '').localeCompare(a.datum || '') ||
+      (b.erstelltAm || '').localeCompare(a.erstelltAm || ''));
+}
+
+/** Speichert einen Eintrag in einer Liste (neu oder geändert). */
+export function listeSpeichern(name, eintrag) {
+  const daten = lesen();
+  const liste = daten[name];
+  if (eintrag.id) {
+    const i = liste.findIndex((e) => e.id === eintrag.id);
+    if (i === -1) throw new Error('Dieser Eintrag wurde nicht gefunden.');
+    liste[i] = { ...liste[i], ...eintrag };
+    schreiben(daten);
+    return liste[i];
+  }
+  const neu = { ...eintrag, id: neueId(), erstelltAm: new Date().toISOString() };
+  liste.push(neu);
+  schreiben(daten);
+  return neu;
+}
+
+/** Löscht einen Eintrag aus einer Liste. */
+export function listeLoeschen(name, id) {
+  const daten = lesen();
+  daten[name] = daten[name].filter((e) => e.id !== id);
+  schreiben(daten);
 }
 
 // ---------------------------------------------------------------------------

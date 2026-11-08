@@ -42,6 +42,57 @@ const ATEM_RUNDEN = 5;
 const ATEM_EIN_MS = 4000;
 const ATEM_AUS_MS = 6000;
 
+// Trainer-Modus: Ziele, Niveaus, Dauer
+const ZIELE = ['Aufschlag', 'Grundlinie', 'Netzspiel', 'Return', 'Kondition', 'Mental'];
+const NIVEAUS = ['Anfänger', 'Fortgeschritten', 'Wettkampf'];
+const DAUERN = [60, 90, 120];
+const KOERPER_TYPEN = ['Training', 'Match', 'Ruhetag'];
+
+// Übungen je Ziel. min = ab welchem Niveau die Übung passt (0 Anfänger, 1 Fortgeschritten, 2 Wettkampf)
+const UEBUNGEN = {
+  Aufschlag: [
+    { name: 'Ziele treffen', min: 0, text: 'Mit Körbchen oder Kreide Zielfelder markieren. 10 Aufschläge, Treffer zählen.' },
+    { name: 'Bewegung im Aufschlag', min: 0, text: 'Ballwurf, Schwung, Treffpunkt. Erst langsam, dann Tempo steigern.' },
+    { name: 'Zweiter Aufschlag', min: 1, text: 'Nur zweite Aufschläge. Ziel: 8 von 10 ins Feld.' },
+    { name: 'Aufschlag unter Druck', min: 2, text: 'Satzball simulieren: 3 von 4 Aufschlägen müssen ins Feld.' },
+  ],
+  Grundlinie: [
+    { name: 'Cross-Spiel', min: 0, text: 'Cross-Bälle mit Partner, erst nur Vorhand, dann nur Rückhand.' },
+    { name: 'Drei-Zonen-Spiel', min: 0, text: 'Ziele in drei Zonen: tief, Mitte, kurz. Treffer in der Zone zählt einen Punkt.' },
+    { name: 'Richtungswechsel', min: 1, text: 'Abwechselnd diagonal und längs spielen, Tempo langsam steigern.' },
+    { name: 'Eckenlaufen', min: 2, text: 'Trainer spielt in die Ecken, du läufst und kehrst nach jedem Schlag in die Mitte zurück.' },
+  ],
+  Netzspiel: [
+    { name: 'Volley-Wand', min: 0, text: 'Kurze Volleys an die Wand oder zum Partner. 30 Sekunden ohne Fehler zählen.' },
+    { name: 'Angriff nach tiefem Ball', min: 1, text: 'Erst Grundlinie, dann ans Netz. Angriff nach jedem tiefen Ball.' },
+    { name: 'Zwei gegen einen am Netz', min: 2, text: 'Zwei am Netz gegen einen auf der Grundlinie. Ziel: Punkt am Netz.' },
+  ],
+  Return: [
+    { name: 'Return-Zone', min: 0, text: 'Trainer schlägt Aufschläge, du gibst jeden Return ins Feld.' },
+    { name: 'Return mit Schritt', min: 1, text: 'Einen Schritt nach vorne beim Return, Ball früh nehmen.' },
+    { name: 'Return-Angriff', min: 2, text: 'Erster Return gezielt in eine Ecke, damit der Gegner unter Druck kommt.' },
+  ],
+  Kondition: [
+    { name: 'Intervall-Sprints', min: 0, text: '30 Sekunden Sprint zu den Linien, 30 Sekunden gehen. 8 Runden.' },
+    { name: 'Koordinationsleiter', min: 0, text: 'Schnelle Füße auf Leiter oder Hütchen, 20 Sekunden pro Übung.' },
+    { name: 'Dauer-Rallye', min: 1, text: 'Ballwechsel ohne Fehler so lange wie möglich, dann 30 Sekunden Pause.' },
+    { name: 'Spielnahe Belastung', min: 2, text: 'Fünf Ballwechsel voll, dann 40 Sekunden Pause. 6 Serien.' },
+  ],
+  Mental: [
+    { name: 'Punkt-Routine', min: 0, text: 'Vor jedem Aufschlag immer gleich: Ball prellen, atmen, Ziel anschauen.' },
+    { name: 'Fehler abhaken', min: 0, text: 'Nach jedem Fehler: einmal atmen, kurz benennen, weiterspielen.' },
+    { name: 'Satzball-Spiel', min: 1, text: 'Nur Matchsituationen spielen. Jeder Punkt zählt.' },
+    { name: 'Tiebreak unter Druck', min: 2, text: 'Tiebreak spielen, Zuschauer simulieren, keine Ausreden.' },
+  ],
+};
+
+// Das Spiel am Ende der Stunde, je Niveau
+const SPIELE = [
+  'Punktespiel auf halbem Feld, ein Ballwechsel bis 3 Punkte.',
+  'Kurzes Satzspiel bis 4 Spiele, mit einer Vorgabe für jeden Punkt.',
+  'Trainingsmatch nach echten Regeln, mit Matchplan.',
+];
+
 // --- Zustand: was gerade auf dem Bildschirm passiert (nur im Speicher der Seite) ---
 let aktiverTab = 'vor';          // welcher Tab offen ist: 'vor', 'nach' oder 'gegner'
 let wiz = null;                  // Stand des geführten Ablaufs „Vor dem Match“
@@ -249,13 +300,17 @@ function render() {
   document.querySelectorAll('.tab').forEach((t) =>
     t.setAttribute('aria-selected', String(t.dataset.tab === aktiverTab)));
 
-  const titel = { vor: 'Vor dem Match', nach: 'Nach dem Match', gegner: 'Gegner' }[aktiverTab];
+  const titel = {
+    vor: 'Vor dem Match', nach: 'Nach dem Match', gegner: 'Gegner',
+    training: 'Trainer-Modus', koerper: 'Körper', lk: 'LK-Verlauf',
+  }[aktiverTab];
   $('titel').textContent = titel;
 
-  let ansicht;
-  if (aktiverTab === 'vor') ansicht = ansichtVorMatch();
-  else if (aktiverTab === 'nach') ansicht = ansichtNachMatch();
-  else ansicht = ansichtGegner();
+  const ansichten = {
+    vor: ansichtVorMatch, nach: ansichtNachMatch, gegner: ansichtGegner,
+    training: ansichtTraining, koerper: ansichtKoerper, lk: ansichtLk,
+  };
+  const ansicht = ansichten[aktiverTab]();
 
   $('inhalt').replaceChildren(ansicht);
 }
@@ -393,6 +448,7 @@ function ansichtPlan() {
 
   return el('div', { class: 'stack' },
     el('h2', {}, `Dein Plan gegen ${g.name}`),
+    tippsKarte(g),
     el('p', { class: 'muted' }, 'Drei kurze Punkte, die du auf dem Platz umsetzen willst.'),
     letzt
       ? el('button', {
@@ -780,6 +836,7 @@ function oeffneGegnerDetail(id) {
       el('span', { class: 'label' }, 'Bilanz (Siege – Niederlagen)'),
       el('span', { class: 'bilanz-zahl' }, `${b.siege} – ${b.niederlagen}`)),
     el('div', { class: 'karte' }, ...gegnerDetailZeilen(g)),
+    tippsKarte(g),
     el('p', { class: 'sektion-titel' }, 'Matches gegen ihn'),
     ...(matches.length
       ? matches.map((m) => matchKarte(m, zurueckZuGegner))
@@ -1049,6 +1106,359 @@ async function alleDatenLoeschenMitFrage() {
 // ==========================================================================
 
 /** Richtet die festen Knöpfe ein (Tab-Leiste, Zahnrad, Formular-Fenster). */
+// ==========================================================================
+// 5. TIPPS, TRAINER, KÖRPER, LK (alles offline, ohne Internet)
+// ==========================================================================
+
+/** Wie viele Tage ein Datum (JJJJ-MM-TT) her ist. Heute = 0. */
+function tageSeit(iso) {
+  if (!iso) return 9999;
+  const heute = new Date(heuteIso() + 'T00:00:00');
+  const tag = new Date(iso + 'T00:00:00');
+  return Math.round((heute - tag) / 86400000);
+}
+
+/** Belastungspunkte eines Eintrags: Minuten mal Intensität (1 bis 10), geteilt durch 10. */
+function belastungsPunkte(e) {
+  return Math.round((Number(e.minuten) || 0) * (Number(e.intensitaet) || 0) / 10);
+}
+
+/** Tipps aus dem Körper-Tab: viel Belastung oder wenig Schlaf in der letzten Zeit. */
+function koerperTipps() {
+  const tipps = [];
+  const letzte = Daten.listeAlle('belastung');
+  const woche = letzte.filter((e) => tageSeit(e.datum) <= 7);
+  const punkte = woche.reduce((summe, e) => summe + belastungsPunkte(e), 0);
+  if (punkte >= 400) tipps.push('Du hattest in den letzten 7 Tagen viel Belastung. Plane vor dem Match lieber einen ruhigen Tag ein.');
+  const schlaf = letzte.slice(0, 3).map((e) => Number(e.schlaf)).filter((s) => s > 0);
+  if (schlaf.length && schlaf.reduce((a, b) => a + b, 0) / schlaf.length < 7) {
+    tipps.push('Du schläfst in letzter Zeit unter 7 Stunden. Nimm dir vor dem Match ruhige Atemzüge.');
+  }
+  return tipps;
+}
+
+/** Tipps zu einem Gegner, aus Notizen, Bilanz und den letzten Matches. */
+function tippsFuer(g) {
+  const tipps = [];
+  if (g.schwaechen && g.schwaechen.trim()) tipps.push(`Seine Schwächen laut deinen Notizen: ${g.schwaechen.trim()}. Spiel gezielt darauf.`);
+  if (g.staerken && g.staerken.trim()) tipps.push(`Achte auf seine Stärken: ${g.staerken.trim()}.`);
+
+  const spiele = Daten.matchesVon(g.id).filter((m) => m.status === 'nachbereitet');
+  if (!spiele.length) {
+    tipps.push('Nach dem nächsten Match trägst du das Ergebnis ein. Dann bekommst du hier Tipps aus deiner Bilanz.');
+    return [...tipps, ...koerperTipps()];
+  }
+
+  const b = Daten.bilanz(g.id);
+  if (b.niederlagen > b.siege) {
+    tipps.push(`Du hast gegen ihn öfter verloren (${b.siege} : ${b.niederlagen}). Starte den Plan mit dem Punkt, den du sicher umsetzen kannst.`);
+  }
+
+  const letzt = spiele[0];
+  if (letzt.nichtFunktioniert) tipps.push(`Letztes Mal hat nicht geklappt: „${letzt.nichtFunktioniert}“. Probiere dieses Mal eine andere Idee.`);
+  if (letzt.funktioniert) tipps.push(`Letztes Mal hat geklappt: „${letzt.funktioniert}“. Behalte das bei.`);
+
+  const nichtGeklappt = (letzt.planAuswertung || []).filter((p) => p === 'nein').length;
+  if (nichtGeklappt >= 2) tipps.push('Im letzten Match hat der Plan oft nicht geklappt. Nimm dieses Mal nur zwei Punkte und wiederhole sie.');
+
+  const koepfe = spiele.map((m) => m.kopf).filter((k) => typeof k === 'number');
+  if (koepfe.length) {
+    const schnitt = koepfe.reduce((a, b) => a + b, 0) / koepfe.length;
+    if (schnitt < 5) {
+      tipps.push(`Dein Kopf war in deinen Matches im Schnitt bei ${schnitt.toFixed(1).replace('.', ',')} von 10. Plane die Atemübung fest ein.`);
+    }
+  }
+  return [...tipps, ...koerperTipps()];
+}
+
+/** Die Tipps als Karte. Gibt null zurück, wenn es nichts zu sagen gibt. */
+function tippsKarte(g) {
+  const tipps = tippsFuer(g);
+  if (!tipps.length) return null;
+  return el('div', { class: 'karte' },
+    el('span', { class: 'label' }, 'Tipps für dich'),
+    ...tipps.map((t) => el('p', {}, `• ${t}`)));
+}
+
+/** Ein Regler mit Anzeige des Wertes (z. B. Intensität 1 bis 10). */
+function reglerFeld(beschriftung, min, max, start, onWahl) {
+  const anzeige = el('span', { class: 'regler-wert' }, String(start));
+  const regler = el('input', {
+    class: 'regler', type: 'range', min: String(min), max: String(max), step: '1', value: String(start),
+    'aria-label': beschriftung,
+    oninput(e) {
+      const wert = Number(e.target.value);
+      anzeige.textContent = String(wert);
+      onWahl(wert);
+    },
+  });
+  return el('div', { class: 'feld' },
+    el('span', { class: 'label' }, beschriftung),
+    el('div', { class: 'reglerzeile' }, regler, anzeige));
+}
+
+// ---------- Tab: Training (Trainer-Modus) ----------
+
+// Zustand des Trainer-Modus (bleibt beim Tab-Wechsel erhalten)
+let trainer = { gruppe: 4, niveau: 'Anfänger', ziel: 'Aufschlag', dauer: 60, plan: null };
+
+/** Hinweis zur Gruppengröße. */
+function gruppenHinweis(n) {
+  if (n <= 1) return 'Einzeltraining: Übungen mit Ballmaschine oder Balleimer, ohne Gegner.';
+  if (n <= 4) return `Kleine Gruppe (${n} Personen): Alle üben gleichzeitig, nach jeder Übung die Partner wechseln.`;
+  return `Große Gruppe (${n} Personen): Bildet ${Math.ceil(n / 2)} Stationen zu zweit und wechselt nach jeder Übung.`;
+}
+
+/**
+ * Erstellt eine Trainingsstunde aus Gruppe, Niveau, Ziel und Dauer.
+ * Aufbau: Aufwärmen 10 Min, Übungen, Spiel 10 Min, Ausklang.
+ */
+function trainingsplanErstellen({ gruppe, niveau, ziel, dauer }) {
+  const niv = NIVEAUS.indexOf(niveau);
+  const aufwaermen = 10;
+  const spiel = 10;
+  const ausklang = 10;
+  const haupt = dauer - aufwaermen - spiel - ausklang;      // 60 Min → 30 Min Übungen
+  const passend = UEBUNGEN[ziel].filter((u) => u.min <= niv);
+  // Höchstens so viele Übungen, wie es für das Niveau gibt (keine Wiederholungen)
+  const anzahl = Math.min(4, passend.length, Math.max(1, Math.floor(haupt / 10)));
+  const minuten = Math.floor(haupt / anzahl);
+
+  const bloecke = [{ titel: 'Aufwärmen', minuten: aufwaermen, text: 'Locker einlaufen, Grundschläge über das Netz, dann Beweglichkeit.' }];
+  for (let i = 0; i < anzahl; i++) {
+    const u = passend[i];
+    bloecke.push({ titel: `Übung ${i + 1}: ${u.name}`, minuten, text: u.text });
+  }
+  bloecke.push({ titel: 'Spiel', minuten: spiel, text: SPIELE[niv] });
+  bloecke.push({ titel: 'Ausklang', minuten: dauer - aufwaermen - spiel - minuten * anzahl, text: 'Auslaufen, dehnen, kurz besprechen: Was lief gut, was nehmen wir mit?' });
+
+  return { gruppe, niveau, ziel, dauer, gruppenHinweis: gruppenHinweis(gruppe), bloecke };
+}
+
+/** Eine fertige Trainingsstunde als Karte mit allen Blöcken. */
+function trainingsstundeKarte(plan, mitSpeichern) {
+  return el('div', { class: 'karte' },
+    el('span', { class: 'label' }, `${plan.dauer} Min · ${plan.niveau} · ${plan.ziel}`),
+    el('p', { class: 'muted' }, plan.gruppenHinweis),
+    ...plan.bloecke.map((b) => el('div', { class: 'zeile' },
+      el('span', { class: 'label' }, `${b.minuten} Min · ${b.titel}`),
+      el('p', {}, b.text))),
+    mitSpeichern
+      ? el('button', { class: 'btn btn-primaer', onclick: () => speichereStunde(plan) }, 'Stunde speichern')
+      : null);
+}
+
+/** Speichert die erstellte Stunde in der Liste „Gespeicherte Stunden“. */
+function speichereStunde(plan) {
+  const eintrag = { datum: heuteIso(), ...plan };
+  if (versuche(() => Daten.listeSpeichern('trainingsstunden', eintrag))) {
+    zeigeToast('Trainingsstunde gespeichert');
+    render();
+  }
+}
+
+/** Der Tab „Training“: Formular, fertige Stunde und gespeicherte Stunden. */
+function ansichtTraining() {
+  const gespeichert = Daten.listeAlle('trainingsstunden');
+  return el('div', { class: 'stack' },
+    el('p', { class: 'muted' }, 'Gib deine Gruppe an. Dann bekommst du eine passende Trainingsstunde.'),
+    feld('Anzahl Spieler', el('input', {
+      class: 'input zahl', type: 'number', inputmode: 'numeric', min: '1', max: '30',
+      value: String(trainer.gruppe),
+      oninput(e) { trainer.gruppe = Math.max(1, Number(e.target.value) || 1); },
+    })),
+    el('span', { class: 'label' }, 'Niveau'),
+    auswahl(NIVEAUS.map((n) => ({ wert: n, label: n })), trainer.niveau, (w) => { trainer.niveau = w; }),
+    el('span', { class: 'label' }, 'Ziel'),
+    auswahl(ZIELE.map((z) => ({ wert: z, label: z })), trainer.ziel, (w) => { trainer.ziel = w; }),
+    el('span', { class: 'label' }, 'Dauer'),
+    auswahl(DAUERN.map((d) => ({ wert: d, label: `${d} Min` })), trainer.dauer, (w) => { trainer.dauer = w; }),
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        trainer.plan = trainingsplanErstellen({ ...trainer, gruppe: trainer.gruppe });
+        render();
+      },
+    }, 'Trainingsstunde erstellen'),
+    trainer.plan ? trainingsstundeKarte(trainer.plan, true) : null,
+    el('p', { class: 'sektion-titel' }, 'Gespeicherte Stunden'),
+    ...(gespeichert.length
+      ? gespeichert.map((s) => el('button', { class: 'karte', onclick: () => oeffneStunde(s) },
+        el('strong', { class: 'gegner-name' }, `${s.ziel} · ${s.dauer} Min`),
+        el('span', { class: 'muted' }, `${datumDe(s.datum)} · ${s.niveau} · ${s.gruppe} Spieler`)))
+      : [hinweis('Noch keine gespeicherte Stunde.')]));
+}
+
+/** Eine gespeicherte Stunde im Formular-Fenster, mit Löschen. */
+function oeffneStunde(s) {
+  const inhalt = el('div', { class: 'stack' },
+    trainingsstundeKarte(s, false),
+    el('button', { class: 'btn btn-gefahr', onclick: () => stundeLoeschenMitFrage(s) }, 'Stunde löschen'));
+  oeffneSheet(datumDe(s.datum), inhalt, null);
+}
+
+async function stundeLoeschenMitFrage(s) {
+  const ja = await fragen({ titel: 'Stunde löschen?', text: 'Die gespeicherte Trainingsstunde wird gelöscht.', ok: 'Löschen', gefahr: true });
+  if (!ja) return;
+  if (versuche(() => Daten.listeLoeschen('trainingsstunden', s.id))) {
+    schliesseSheet();
+    zeigeToast('Stunde gelöscht');
+    render();
+  }
+}
+
+// ---------- Tab: Körper (Belastungs-Tracker) ----------
+
+/** Der Tab „Körper“: Wochenbelastung, Ampel und Liste der Einträge. */
+function ansichtKoerper() {
+  const liste = Daten.listeAlle('belastung');
+  const woche = liste.filter((e) => tageSeit(e.datum) <= 7);
+  const punkte = woche.reduce((summe, e) => summe + belastungsPunkte(e), 0);
+  const ampel = punkte >= 400 ? 'hoch' : punkte >= 200 ? 'mittel' : 'niedrig';
+
+  return el('div', { class: 'stack' },
+    el('div', { class: 'bilanz-karte' },
+      el('span', { class: 'label' }, 'Belastung letzte 7 Tage'),
+      el('span', { class: 'bilanz-zahl' }, `${punkte} Punkte`),
+      el('span', { class: 'muted' }, `Belastung: ${ampel}`)),
+    ...koerperTipps().map((t) => el('div', { class: 'karte' }, t)),
+    el('button', { class: 'btn btn-primaer', onclick: () => oeffneBelastung(null) }, '+ Eintrag hinzufügen'),
+    el('p', { class: 'sektion-titel' }, 'Einträge'),
+    ...(liste.length
+      ? liste.map((e) => el('button', { class: 'karte', onclick: () => oeffneBelastung(e) },
+        el('strong', { class: 'gegner-name' }, `${datumDe(e.datum)} · ${e.typ}`),
+        el('span', { class: 'muted' }, `${e.minuten || 0} Min · Intensität ${e.intensitaet} · Schlaf ${e.schlaf || '–'} h`)))
+      : [hinweis('Noch keine Einträge. Trage nach jedem Training oder Match ein, wie du dich fühlst.')]));
+}
+
+/** Formular für einen Belastungs-Eintrag. e = null bedeutet „neu“. */
+function oeffneBelastung(e) {
+  const f = {
+    datum: e?.datum || heuteIso(),
+    typ: e?.typ || 'Training',
+    minuten: e?.minuten ?? 60,
+    intensitaet: e?.intensitaet ?? 6,
+    schlaf: e?.schlaf ?? 7,
+    erholung: e?.erholung ?? 5,
+    notiz: e?.notiz || '',
+  };
+
+  const inhalt = el('div', { class: 'stack' },
+    feld('Datum', el('input', { class: 'input', type: 'date', value: f.datum, oninput(ev) { f.datum = ev.target.value; } })),
+    el('span', { class: 'label' }, 'Art'),
+    auswahl(KOERPER_TYPEN.map((t) => ({ wert: t, label: t })), f.typ, (w) => { f.typ = w; }),
+    feld('Dauer in Minuten', el('input', { class: 'input zahl', type: 'number', inputmode: 'numeric', min: '0', max: '600', value: String(f.minuten), oninput(ev) { f.minuten = Number(ev.target.value) || 0; } })),
+    reglerFeld('Intensität (1 = locker, 10 = maximal)', 1, 10, f.intensitaet, (w) => { f.intensitaet = w; }),
+    feld('Schlaf letzte Nacht (Stunden)', el('input', { class: 'input zahl', type: 'number', inputmode: 'decimal', min: '0', max: '14', step: '0.5', value: String(f.schlaf), oninput(ev) { f.schlaf = Number(ev.target.value) || 0; } })),
+    reglerFeld('Wie erholt fühlst du dich? (1 = kaputt, 10 = super)', 1, 10, f.erholung, (w) => { f.erholung = w; }),
+    feld('Notiz (optional)', el('input', { class: 'input', type: 'text', maxlength: '120', value: f.notiz, oninput(ev) { f.notiz = ev.target.value; } })),
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        if (!f.datum) { zeigeToast('Bitte wähle ein Datum.'); return; }
+        const eintrag = { ...f, id: e?.id };
+        if (versuche(() => Daten.listeSpeichern('belastung', eintrag))) {
+          schliesseSheet();
+          zeigeToast('Gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'),
+    e ? el('button', { class: 'btn btn-gefahr', onclick: () => belastungLoeschenMitFrage(e) }, 'Eintrag löschen') : null);
+
+  oeffneSheet(e ? 'Eintrag bearbeiten' : 'Neuer Eintrag', inhalt, null);
+}
+
+async function belastungLoeschenMitFrage(e) {
+  const ja = await fragen({ titel: 'Eintrag löschen?', text: 'Der Eintrag wird gelöscht.', ok: 'Löschen', gefahr: true });
+  if (!ja) return;
+  if (versuche(() => Daten.listeLoeschen('belastung', e.id))) {
+    schliesseSheet();
+    zeigeToast('Eintrag gelöscht');
+    render();
+  }
+}
+
+// ---------- Tab: LK (LK-Verlauf) ----------
+
+/** Wandelt „13,2“ in eine Zahl (13.2). */
+function lkZahl(text) {
+  return Number(String(text).replace(',', '.'));
+}
+
+/** Der Tab „LK“: Verlauf der eingetragenen LK, zusammen mit den Matches. */
+function ansichtLk() {
+  const lkEintraege = Daten.listeAlle('lk');
+  const matches = Daten.alleMatches().filter((m) => m.status === 'nachbereitet');
+
+  // Eine gemeinsame Liste aus LK-Einträgen und Matches, neueste zuerst
+  const verlauf = [
+    ...lkEintraege.map((e) => ({
+      datum: e.datum, titel: `LK ${e.wert}`, text: e.anlass || 'LK-Eintrag',
+      klick: () => oeffneLk(e),                    // LK-Einträge lassen sich antippen und ändern
+    })),
+    ...matches.map((m) => {
+      const gegner = Daten.gegnerPerId(m.gegnerId);
+      return {
+        datum: m.datum,
+        titel: m.sieg ? 'Sieg' : 'Niederlage',
+        text: `${gegner ? gegner.name : 'Unbekannter Gegner'} · ${ergebnisText(m)}`,
+      };
+    }),
+  ].sort((a, b) => (b.datum || '').localeCompare(a.datum || ''));
+
+  // Veränderung: neuester gegen ältesten LK-Wert
+  const aelteste = lkEintraege[lkEintraege.length - 1];
+  const neueste = lkEintraege[0];
+  const veraenderung = lkEintraege.length >= 2
+    ? (lkZahl(neueste.wert) - lkZahl(aelteste.wert)).toFixed(1).replace('.', ',')
+    : null;
+
+  const bilanzJahr = matches.filter((m) => tageSeit(m.datum) <= 365);
+  const siege = bilanzJahr.filter((m) => m.sieg).length;
+
+  return el('div', { class: 'stack' },
+    el('div', { class: 'bilanz-karte' },
+      el('span', { class: 'label' }, 'Aktuelle LK'),
+      el('span', { class: 'bilanz-zahl' }, neueste ? neueste.wert : '–'),
+      el('span', { class: 'muted' }, veraenderung !== null ? `Veränderung seit ${datumDe(aelteste.datum)}: ${veraenderung}` : (neueste ? 'Trage die nächste LK ein, dann siehst du die Veränderung.' : 'Trage deine LK ein, um den Verlauf zu sehen.')),
+      el('span', { class: 'muted' }, `Matches letzte 12 Monate: ${siege} Siege, ${bilanzJahr.length - siege} Niederlage(n)`)),
+    el('p', { class: 'muted' }, 'Die LK kommt vom Verband. Die App rechnet sie nicht selbst aus, sie zeigt nur deinen Verlauf.'),
+    el('button', { class: 'btn btn-primaer', onclick: () => oeffneLk(null) }, '+ LK eintragen'),
+    el('p', { class: 'sektion-titel' }, 'Verlauf'),
+    ...(verlauf.length
+      ? verlauf.map((v) => el(v.klick ? 'button' : 'div', { class: 'karte', onclick: v.klick || null },
+        el('strong', { class: 'gegner-name' }, v.titel),
+        el('span', { class: 'muted' }, `${datumDe(v.datum)} · ${v.text}`)))
+      : [hinweis('Noch kein Verlauf. Trage deine erste LK ein.')]));
+}
+
+/** Formular für eine LK. e = null bedeutet „neu“. */
+function oeffneLk(e) {
+  const f = { datum: e?.datum || heuteIso(), wert: e?.wert || '', anlass: e?.anlass || '' };
+  const inhalt = el('div', { class: 'stack' },
+    feld('Datum', el('input', { class: 'input', type: 'date', value: f.datum, oninput(ev) { f.datum = ev.target.value; } })),
+    feld('LK (z. B. 13,2)', el('input', { class: 'input', type: 'text', inputmode: 'decimal', maxlength: '5', placeholder: '13,2', value: f.wert, oninput(ev) { f.wert = ev.target.value; } })),
+    feld('Anlass (optional)', el('input', { class: 'input', type: 'text', maxlength: '60', placeholder: 'z. B. Meldung Sommer', value: f.anlass, oninput(ev) { f.anlass = ev.target.value; } })),
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        const zahl = lkZahl(f.wert);
+        if (!f.wert.trim() || Number.isNaN(zahl) || zahl < 1 || zahl > 30) {
+          zeigeToast('Bitte gib eine LK zwischen 1 und 30 ein, z. B. 13,2.');
+          return;
+        }
+        const eintrag = { id: e?.id, datum: f.datum, wert: zahl.toFixed(1).replace('.', ','), anlass: f.anlass.trim() };
+        if (versuche(() => Daten.listeSpeichern('lk', eintrag))) {
+          schliesseSheet();
+          zeigeToast('LK gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'));
+  oeffneSheet(e ? 'LK bearbeiten' : 'LK eintragen', inhalt, null);
+}
+
 function bindeKnoepfe() {
   // Tab-Leiste unten
   document.querySelectorAll('.tab').forEach((knopf) => {

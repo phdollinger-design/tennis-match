@@ -91,26 +91,18 @@ Wenn du etwas an der App änderst, lade die geänderten Dateien auf GitHub hoch 
 
 - **Vor dem Match:** Wähle einen Gegner (oder lege ihn schnell an), siehst seine Infos und deine letzten Notizen. Dann drei Matchplan-Punkte, eine kurze Atemübung und dein Satz gegen den Druck. „Bereit – los geht’s“ speichert das Match als geplant.
 - **Nach dem Match:** Offene Matches antippen, Ergebnis in Sätzen eintragen (z. B. 6:4, 3:6, 10:7 mit Häkchen bei Match-Tiebreak), Art wählen, Matchplan bewerten und die drei Fragen beantworten.
-- **Gegner:** Kartei mit Suche. Antippen zeigt Bilanz, Angaben und alle Matches gegen ihn.
+- **Gegner:** Kartei mit Suche. Antippen zeigt Bilanz, Angaben, **Tipps für dich** und alle Matches gegen ihn. Die Tipps kommen aus deinen Notizen, deiner Bilanz und deinen letzten Matches. Im Schritt „Plan“ siehst du sie auch.
+- **Training (Trainer-Modus):** Gib die Anzahl der Spieler, das Niveau, das Ziel (Aufschlag, Grundlinie, Netzspiel, Return, Kondition, Mental) und die Dauer ein. Die App erstellt eine Stunde mit Aufwärmen, Übungen, Spiel und Ausklang. Mit „Stunde speichern“ bleibt sie erhalten.
+- **Körper (Belastung):** Trage nach jedem Training oder Match Dauer, Intensität, Schlaf und Erholung ein. Die App zeigt deine Belastung der letzten 7 Tage und warnt bei viel Belastung oder wenig Schlaf.
+- **LK:** Trage deine Leistungsklasse mit Datum ein. Der Verlauf zeigt die LK-Einträge zusammen mit deinen Matches. Die LK rechnet die App nicht selbst aus, sie kommt vom Verband.
 - **Zahnrad oben rechts:** Satz gegen den Druck ändern, Daten exportieren und importieren, alle Daten löschen.
 
 **Tipp:** Exportiere ab und zu eine Sicherung. So geht nichts verloren, auch wenn der Browser seine Daten löscht.
 
 ---
 
-## 5. Ideen für die nächsten Versionen
+## 5. Ideen für später
 
-**Version 2 – Trainingsstunden-Generator** (Bereich „Training geben“)
-- Plane Trainingseinheiten für Spieler aus einer Vorlagenliste.
-- Stelle Übungen nach Niveau, Dauer und Ziel zusammen.
-- Speichere Trainingspläne und zeige sie vor jeder Stunde an.
-
-**Version 3 – Belastungs-Tracker** (Bereich „Körper“)
-- Notiere Trainings- und Matchbelastung sowie Schlaf und Erholung.
-- Erkenne Phasen mit hoher Belastung und erinnere an Pausen.
-- Verbinde Körpergefühl mit der Leistung aus den Matches.
-
-**Version 4 – LK-Verlauf**
-- Halte deine Leistungsklasse über die Zeit fest.
-- Zeige, wie sich Matchergebnisse auf die LK auswirken.
-- Vergleiche Entwicklung und Ziele.
+- **Mehr Übungen:** Die Übungsliste steht in `app.js` (Abschnitt „Trainer-Modus“). Dort kannst du neue Übungen mit einem Namen, einem Niveau (0 bis 2) und einem Text eintragen.
+- **Tipps verfeinern:** Die Regeln für die Tipps stehen in der Funktion `tippsFuer` in `app.js`.
+- **Eine echte KI-Auswertung** wäre möglich, braucht aber einen API-Schlüssel und Internet. Das ist bewusst nicht in dieser Version.

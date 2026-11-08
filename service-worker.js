@@ -8,7 +8,7 @@
  * (z. B. 'tennis-match-v2'). Sonst bekommt das iPhone die neue Version nicht.
  */
 
-const CACHE_NAME = 'tennis-match-v1';
+const CACHE_NAME = 'tennis-match-v2';
 
 // Alle Dateien, die zur App gehören
 const DATEIEN = [
