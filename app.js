@@ -1278,6 +1278,16 @@ function gruppenHinweis(n) {
   return `Große Gruppe (${n} Personen): Bildet ${Math.ceil(n / 2)} Stationen zu zweit und wechselt nach jeder Übung.`;
 }
 
+/** Mischt eine Liste zufällig (Fisher-Yates), damit jede neue Stunde anders ist. */
+function mischen(liste) {
+  const kopie = liste.slice();
+  for (let i = kopie.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [kopie[i], kopie[j]] = [kopie[j], kopie[i]];
+  }
+  return kopie;
+}
+
 /**
  * Erstellt eine Trainingsstunde aus Gruppe, Niveau, Ziel und Dauer.
  * Aufbau: Aufwärmen 10 Min, Übungen, Spiel 10 Min, Ausklang.
@@ -1288,7 +1298,7 @@ function trainingsplanErstellen({ gruppe, niveau, ziel, dauer }) {
   const spiel = 10;
   const ausklang = 10;
   const haupt = dauer - aufwaermen - spiel - ausklang;      // 60 Min → 30 Min Übungen
-  const passend = UEBUNGEN[ziel].filter((u) => u.min <= niv);
+  const passend = mischen(UEBUNGEN[ziel].filter((u) => u.min <= niv));
   // Höchstens so viele Übungen, wie es für das Niveau gibt (keine Wiederholungen)
   const anzahl = Math.min(4, passend.length, Math.max(1, Math.floor(haupt / 10)));
   const minuten = Math.floor(haupt / anzahl);
@@ -1345,10 +1355,22 @@ function ansichtTraining() {
     el('button', {
       class: 'btn btn-primaer',
       onclick() {
-        trainer.plan = trainingsplanErstellen({ ...trainer, gruppe: trainer.gruppe });
+        // Neue Stunde: möglichst andere Übungen als die bisherige (bis zu 6 Versuche)
+        const namen = (p) => p.bloecke
+          .filter((b) => b.titel.startsWith('Übung'))
+          .map((b) => b.titel.replace(/^Übung \d+: /, ''))
+          .sort()
+          .join('|');
+        const alt = trainer.plan ? namen(trainer.plan) : '';
+        let plan;
+        for (let i = 0; i < 6; i++) {
+          plan = trainingsplanErstellen({ ...trainer });
+          if (namen(plan) !== alt) break;
+        }
+        trainer.plan = plan;
         render();
       },
-    }, 'Trainingsstunde erstellen'),
+    }, trainer.plan ? 'Neue Stunde (andere Übungen)' : 'Trainingsstunde erstellen'),
     trainer.plan ? trainingsstundeKarte(trainer.plan, true) : null,
     el('p', { class: 'sektion-titel' }, 'Gespeicherte Stunden'),
     ...(gespeichert.length
