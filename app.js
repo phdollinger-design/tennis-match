@@ -1323,7 +1323,9 @@ function trainingsstundeKarte(plan, mitSpeichern) {
       el('span', { class: 'label' }, `${b.minuten} Min · ${b.titel}`),
       el('p', {}, b.text))),
     mitSpeichern
-      ? el('button', { class: 'btn btn-primaer', onclick: () => speichereStunde(plan) }, 'Stunde speichern')
+      ? el('div', { class: 'knopf-reihe' },
+        el('button', { class: 'btn btn-primaer', onclick: () => speichereStunde(plan) }, 'Stunde speichern'),
+        el('button', { class: 'btn btn-sekundaer', onclick: erstelleNeueStunde }, 'Neue Stunde'))
       : null);
 }
 
@@ -1334,6 +1336,23 @@ function speichereStunde(plan) {
     zeigeToast('Trainingsstunde gespeichert');
     render();
   }
+}
+
+/** Erstellt eine neue Stunde. Möglichst andere Übungen als die bisherige (bis zu 6 Versuche). */
+function erstelleNeueStunde() {
+  const namen = (p) => p.bloecke
+    .filter((b) => b.titel.startsWith('Übung'))
+    .map((b) => b.titel.replace(/^Übung \d+: /, ''))
+    .sort()
+    .join('|');
+  const alt = trainer.plan ? namen(trainer.plan) : '';
+  let plan;
+  for (let i = 0; i < 6; i++) {
+    plan = trainingsplanErstellen({ ...trainer });
+    if (namen(plan) !== alt) break;
+  }
+  trainer.plan = plan;
+  render();
 }
 
 /** Der Tab „Training“: Formular, fertige Stunde und gespeicherte Stunden. */
@@ -1352,25 +1371,8 @@ function ansichtTraining() {
     auswahl(ZIELE.map((z) => ({ wert: z, label: z })), trainer.ziel, (w) => { trainer.ziel = w; }),
     el('span', { class: 'label' }, 'Dauer'),
     auswahl(DAUERN.map((d) => ({ wert: d, label: `${d} Min` })), trainer.dauer, (w) => { trainer.dauer = w; }),
-    el('button', {
-      class: 'btn btn-primaer',
-      onclick() {
-        // Neue Stunde: möglichst andere Übungen als die bisherige (bis zu 6 Versuche)
-        const namen = (p) => p.bloecke
-          .filter((b) => b.titel.startsWith('Übung'))
-          .map((b) => b.titel.replace(/^Übung \d+: /, ''))
-          .sort()
-          .join('|');
-        const alt = trainer.plan ? namen(trainer.plan) : '';
-        let plan;
-        for (let i = 0; i < 6; i++) {
-          plan = trainingsplanErstellen({ ...trainer });
-          if (namen(plan) !== alt) break;
-        }
-        trainer.plan = plan;
-        render();
-      },
-    }, trainer.plan ? 'Neue Stunde (andere Übungen)' : 'Trainingsstunde erstellen'),
+    el('button', { class: 'btn btn-primaer', onclick: erstelleNeueStunde },
+      trainer.plan ? 'Neue Stunde (andere Übungen)' : 'Trainingsstunde erstellen'),
     trainer.plan ? trainingsstundeKarte(trainer.plan, true) : null,
     el('p', { class: 'sektion-titel' }, 'Gespeicherte Stunden'),
     ...(gespeichert.length
