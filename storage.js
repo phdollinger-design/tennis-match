@@ -19,7 +19,7 @@
 const SCHLUESSEL = 'tennis-trainer-v1';
 
 // Die Listen, die es im Datenmodell gibt
-const LISTEN = ['stunden', 'erinnerungen', 'saisonplaene'];
+const LISTEN = ['stunden', 'erinnerungen', 'saisonplaene', 'spieler', 'testergebnisse', 'kontoEintraege'];
 
 /** Ein leerer Datenstand – wird benutzt, wenn noch nichts gespeichert ist. */
 function leer() {
@@ -28,6 +28,9 @@ function leer() {
     stunden: [],
     erinnerungen: [],
     saisonplaene: [],
+    spieler: [],
+    testergebnisse: [],
+    kontoEintraege: [],
     uebungen: null,
     einstellungen: {},
   };

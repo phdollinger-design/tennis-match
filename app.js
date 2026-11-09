@@ -30,7 +30,7 @@ const SPIELE = [
   'Kurzes Satzspiel bis 4 Spiele, mit einer Vorgabe für jeden Punkt.',
 ];
 
-const TAB_TITEL = { stunden: 'Trainingsstunden', saison: 'Saisonplan', uebungen: 'Übungen' };
+const TAB_TITEL = { stunden: 'Trainingsstunden', saison: 'Saisonplan', uebungen: 'Übungen', spieler: 'Spieler', konto: 'Konto' };
 
 /**
  * Die Standardübungen. Jede Zeile: [Ziel, min, Name, Beschreibung].
@@ -86,6 +86,90 @@ const STANDARD_UEBUNGEN_ROH = [
   ['Mental', 1, 'Satzball-Spiel', 'Nur Matchsituationen spielen. Jeder Punkt zählt.'],
   ['Mental', 1, 'Druck-Tiebreak', 'Tiebreak spielen, Zuschauer simulieren, keine Ausreden.'],
   ['Mental', 1, 'Gegner-Analyse', 'Zwei spielen gegeneinander, die anderen beobachten und geben nach dem Punkt Feedback.'],
+
+  // --- Erweiterung auf 120 Übungen (je Ziel 20) ---
+  ['Aufschlag', 0, 'Ballwurf-Kontrolle', 'Ball 20 Mal hochwerfen und immer am gleichen Punkt fangen. Dann daraus einen Aufschlag machen.'],
+  ['Aufschlag', 0, 'Beinarbeit im Aufschlag', 'Schrittfolge üben: Stand, Ballwurf, Beinschub. Erst ohne Schläger, dann mit Ball.'],
+  ['Aufschlag', 0, 'Treffer am Körbchen', 'Ein Körbchen in die Aufschlagzone stellen. 10 Bälle, jeder Treffer im Körbchen ist ein Punkt.'],
+  ['Aufschlag', 0, 'Zielwerfen mit Ball', 'Aufschlagbewegung ohne Schläger, Ball an ein Ziel an der Wand werfen. Danach dasselbe mit Schläger.'],
+  ['Aufschlag', 1, 'Zweiter Aufschlag mit Kick', 'Zweiten Aufschlag mit Kick üben. Ziel: 7 von 10 ins Feld, Ball hoch über das Netz.'],
+  ['Aufschlag', 1, 'Aufschlag-Spiel 1 gegen 1', 'Punktespiel nur über den Aufschlag. Wer den Aufschlag gewinnt, bekommt 1 Punkt. Bis 5 Punkte.'],
+  ['Aufschlag', 1, 'Mitte, dann Ecke', 'Erst 5 Aufschläge in die Mitte, dann 5 in die Ecke. Ziel: beides ins Feld.'],
+  ['Aufschlag', 1, 'Aufschlag und Schritt ans Netz', 'Nach jedem Aufschlag einen Schritt nach vorne zum Netz. Ziel: schneller am Netz sein.'],
+  ['Aufschlag', 1, 'Aufschlag mit Spin', 'Hoher Ballwurf, Schläger früh oben, Treffpunkt vor dem Körper. 10 Aufschläge mit Spin.'],
+  ['Aufschlag', 1, 'Aufschlag-Duell', 'Zwei Spieler schlagen abwechselnd auf. Wer den Punkt gewinnt, bekommt 1 Punkt. Bis 7 Punkte.'],
+  ['Aufschlag', 1, 'Aufschlag unter Ablenkung', 'Partner steht am Netz und ruft „Jetzt“ kurz vor dem Schlag. Ziel: Ball trotzdem ins Feld.'],
+
+  ['Grundlinie', 0, 'Vorhand im Stand', 'Vorhand aus dem Stand, der Partner wirft den Ball zu. 20 Schläge ohne Fehler.'],
+  ['Grundlinie', 0, 'Rückhand im Stand', 'Wie Vorhand, aber mit Rückhand. Schulterdrehung betonen.'],
+  ['Grundlinie', 0, 'Ballfolge an der Linie', 'Zwei Spieler an der Grundlinie, Ball hin und her. Ziel: 15 Schläge in Folge.'],
+  ['Grundlinie', 0, 'Schlagen auf Zuruf', 'Der Partner wirft Bälle und ruft „Vorhand“ oder „Rückhand“. Du spielst nur den genannten Schlag.'],
+  ['Grundlinie', 0, 'Quadrat-Treffer', 'Zwei Kreidequadrate in den Ecken. Ziel: Ball ins Quadrat. 10 Bälle je Seite.'],
+  ['Grundlinie', 1, 'Kurze Bälle angreifen', 'Der Partner spielt kurze Bälle, du spielst sie hart und tief zurück.'],
+  ['Grundlinie', 1, 'Dreieck-Laufweg', 'Laufweg: Grundlinie, Diagonale, Mitte. Nach jedem Schlag zurück in die Mitte.'],
+  ['Grundlinie', 1, 'Lange Rallye', 'Ballwechsel ohne Ziel: 30 Schläge am Stück über das Netz, dann Pause.'],
+  ['Grundlinie', 1, 'Vorhand-Duell', 'Zwei Spieler spielen nur Vorhand. Wer einen Rückhand-Schlag spielt, verliert den Punkt.'],
+  ['Grundlinie', 1, 'Rückhand-Duell', 'Wie Vorhand-Duell, aber nur Rückhand. Ziel: sauber und tief.'],
+  ['Grundlinie', 1, 'Hin und her', 'Der Trainer wirft Bälle weit auseinander. Du läufst, schlägst und kehrst in die Mitte zurück.'],
+  ['Grundlinie', 1, 'Punktespiel Grundlinie', 'Nur Grundlinie, nur Cross oder Diagonal. Bis 10 Punkte.'],
+
+  ['Netzspiel', 0, 'Volley-Ballwurf', 'Der Partner wirft Bälle zum Volley ans Netz. 10 Volleys rechts, 10 links.'],
+  ['Netzspiel', 0, 'Schritt ans Netz', 'Vom Service-Bereich nach vorne laufen, den Ball abfangen und am Netz kontrollieren.'],
+  ['Netzspiel', 0, 'Schläger in Position', 'Schläger vor dem Körper halten, Volley-Stop. Bei jedem Ballwechsel die Position halten.'],
+  ['Netzspiel', 0, 'Volley-Partner', 'Zwei Spieler am Netz, Volleys hin und her. Ziel: 20 in Folge.'],
+  ['Netzspiel', 0, 'Handgelenk stabil', 'Kurze Volleys mit ruhigem Handgelenk. Ziel: Ball über das Netz, nicht ins Netz.'],
+  ['Netzspiel', 1, 'Stop-Volley', 'Kurz gespielte Volleys, die kaum über das Netz gehen. Der Partner muss nach vorne laufen.'],
+  ['Netzspiel', 1, 'Lob-Abwehr am Netz', 'Der Partner spielt Lobs über dich. Du läufst rückwärts und spielst den Ball kontrolliert zurück.'],
+  ['Netzspiel', 1, 'Aufschlag und Netz', 'Nach dem Aufschlag direkt ans Netz. Ziel: ersten Volley aus der Mitte spielen.'],
+  ['Netzspiel', 1, 'Passierbälle', 'Der Partner kommt ans Netz, du spielst am Partner vorbei.'],
+  ['Netzspiel', 1, 'Netzduell 2 gegen 2', 'Zwei Teams am Netz. Punkt nur über Volleys. Wer ins Netz spielt, verliert.'],
+  ['Netzspiel', 1, 'Netzpunkte zählen doppelt', 'Nach jedem Aufschlag geht ein Spieler ans Netz. Netzpunkte zählen doppelt. Bis 7 Punkte.'],
+  ['Netzspiel', 1, 'Halbvolley-Duell', 'Halbvolleys aus tiefen Bällen. Ziel: 6 von 10 sauber zurück.'],
+  ['Netzspiel', 1, 'Smash nach dem Lob', 'Lob kommt, du läufst zurück und schlägst den Smash. Ziel: 8 von 10 ins Feld.'],
+
+  ['Return', 0, 'Return aus der Mitte', 'Der Trainer schlägt Bälle aus der Mitte. Du gibst den Return mit einem Schritt zurück.'],
+  ['Return', 0, 'Return-Stand', 'Stand vor der Grundlinie: Schläger früh nach hinten, Ball früh nehmen.'],
+  ['Return', 0, 'Return ohne Aufschlag', 'Der Partner wirft den Ball leicht über das Netz. Du gibst den Return ins Feld.'],
+  ['Return', 0, 'Return ins Körbchen', 'Körbchen an der Feldlinie aufstellen. Jeder Return ins Körbchen zählt.'],
+  ['Return', 0, 'Return im Wechsel', 'Zwei Spieler: einer schlägt auf, einer returniert. Nach 10 Returns wechseln.'],
+  ['Return', 1, 'Return mit Gegenlauf', 'Nach dem Return läufst du sofort ans Netz. Ziel: Punkt aus dem Netzspiel.'],
+  ['Return', 1, 'Return auf den Körper', 'Der Trainer schlägt auf den Körper. Return mit wenig Ausholen, Ball ins Feld.'],
+  ['Return', 1, 'Return in die Ecken', 'Returns diagonal in die Ecken. Ziel: 6 von 10 treffen eine Ecke.'],
+  ['Return', 1, 'Returnspiel 1 gegen 1', 'Aufschläger und Returner spielen einen Punkt. Gewonnener Return = 1 Punkt. Bis 6 Punkte.'],
+  ['Return', 1, 'Return in Bewegung', 'Auf Zuruf links oder rechts laufen und returnieren. 10 Bälle.'],
+  ['Return', 1, 'Nur Vorhand-Return', 'Nur Vorhand-Returns. Ziel: Ball früh nehmen und tief zurück.'],
+  ['Return', 1, 'Nur Rückhand-Return', 'Nur Rückhand-Returns, gleiches Ziel wie bei Vorhand.'],
+  ['Return', 1, 'Return unter Druck', 'Nach drei Fehlern gibt es eine Serie Sprints. Ziel: 10 gute Returns in Folge.'],
+  ['Return', 1, 'Zweiter Aufschlag returnieren', 'Nur zweite Aufschläge. Zwei Punkte für einen Return, der den Gegner unter Druck setzt.'],
+
+  ['Kondition', 0, 'Laufen zu den Kegeln', 'Kegel rund um die Grundlinie. Nach jedem Zuruf zum nächsten Kegel laufen.'],
+  ['Kondition', 0, 'Seitschritt-Kette', 'Seitschritte an der Grundlinie, 15 Sekunden. Dann 20 Sekunden Pause. 6 Runden.'],
+  ['Kondition', 0, 'Hüpfen über die Linie', 'Beidbeinig über eine Linie hüpfen, 30 Sekunden. Dann Erholung.'],
+  ['Kondition', 0, 'Dehnen und Atmen', 'Ruhige Dehnung, 2 Minuten. Pro Stellung 5 tiefe Atemzüge in den Bauch.'],
+  ['Kondition', 0, 'Treppenlauf', 'Treppe oder Bank hoch und runter, 30 Sekunden. Dann locker gehen.'],
+  ['Kondition', 0, 'Schnelle Füße', 'Kurze Schritte auf der Stelle, dann Richtungswechsel auf Zuruf.'],
+  ['Kondition', 1, 'Dreieck-Sprints', 'Sprints um drei Kegel, 20 Sekunden Tempo, 40 Sekunden Gehen. 6 Serien.'],
+  ['Kondition', 1, 'Ballwechsel-Serien', '10 Ballwechsel in Serie, dann 60 Sekunden Pause. 4 Serien.'],
+  ['Kondition', 1, 'Burpee-Rallye', 'Nach jedem Punkt 5 Burpees. Ziel: sauber bleiben trotz Müdigkeit.'],
+  ['Kondition', 1, 'Rückwärts-Sprints', 'Rückwärts zur Grundlinie und wieder zurück. 8 Wiederholungen.'],
+  ['Kondition', 1, 'Kraft-Stationen', 'Drei Stationen: Ausfallschritte, Kniebeugen, Unterarmstütz, je 30 Sekunden. 3 Runden.'],
+  ['Kondition', 1, 'Richtungs-Spiel', 'Rund um das Feld laufen, bei jedem Pfiff die Richtung wechseln. Wer zuerst müde ist, verliert.'],
+  ['Kondition', 1, 'Schattenschläge', 'Schläge ohne Ball, 60 Sekunden, dann 30 Sekunden Pause. Fokus auf sauberer Technik.'],
+  ['Kondition', 1, 'Fangspiel am Feldrand', 'Zwei Spieler: Wer den Ball am Feldrand zuerst fängt, gewinnt. 10 Runden.'],
+
+  ['Mental', 0, 'Ruhige Blicke', 'Vor dem Aufschlag den Ball zweimal prellen und das Ziel anschauen. 15 Aufschläge so.'],
+  ['Mental', 0, 'Sätze an mich selbst', 'Drei Sätze auf einem Zettel: Was ich kann, was ich will, was ich tue. Vor dem Training lesen.'],
+  ['Mental', 0, 'Spaß am Ball', 'Ballwechsel ohne Wertung. Nur gute Schläge werden gelobt.'],
+  ['Mental', 0, 'Pausen-Ritual', 'Nach jedem Punkt immer gleich: Ball aufheben, Schläger klopfen, dann weiter.'],
+  ['Mental', 0, 'Fehler als Lernpunkt', 'Nach jedem Fehler kurz sagen, was du beim nächsten Mal anders machst. Dann weiterspielen.'],
+  ['Mental', 1, 'Gedankenstopp', 'Kommt ein negativer Gedanke, laut „Stopp“ sagen und den nächsten Schlag konzentriert spielen.'],
+  ['Mental', 1, 'Matchpunkt-Spiel', 'Spiel bis 4, jeder Punkt wie ein Matchball. Der Trainer gibt nach jedem Punkt ein Feedback.'],
+  ['Mental', 1, 'Ballwechsel vorher denken', 'Vor dem Punkt den Ballwechsel im Kopf durchspielen, dann spielen, dann ehrlich bewerten.'],
+  ['Mental', 1, 'Schlechter Start', 'Das Spiel startet mit 0:3. Ziel: aufholen, ohne die Ruhe zu verlieren.'],
+  ['Mental', 1, 'Zuschauer-Simulation', 'Zwei Zuschauer am Rand, Geräusche. Ziel: den Ballwechsel trotz Ablenkung zu Ende spielen.'],
+  ['Mental', 1, 'Schnelle Entscheidung', 'Nach jedem Ballwechsel ruft der Trainer „Weiter“ oder „Neu“. Du entscheidest in zwei Sekunden.'],
+  ['Mental', 1, 'Satzball-Duell', 'Spiel bis 6, Satzball für beide. Wer ihn verwandelt, gewinnt.'],
+  ['Mental', 1, 'Rückblick nach dem Spiel', 'Nach dem Spiel drei Fragen beantworten: Was lief gut, was war schwer, was nehme ich mit?'],
 ];
 
 // Die Standardübungen als Objekte mit fester ID (std0, std1, ...)
@@ -375,7 +459,7 @@ function trainingsplanErstellen({ gruppe, niveau, ziel, dauer }) {
   const aufwaermen = 10;
   const spiel = 10;
   const haupt = dauer - aufwaermen - spiel - 10;          // 60 Min → 30 Min Übungen
-  const pool = mischen(passendeUebungen(ziel, niv));
+  const pool = nachAlter(passendeUebungen(ziel, niv));
   // Höchstens 4 Übungen, mindestens 10 Min je Übung, nie mehr als vorhanden
   const anzahl = pool.length ? Math.min(4, pool.length, Math.max(1, Math.floor(haupt / 10))) : 0;
   const minuten = anzahl ? Math.floor(haupt / anzahl) : 0;
@@ -1244,6 +1328,419 @@ async function alleDatenLoeschenMitFrage() {
   }
 }
 
+// ==========================================================================
+// 8. ABWECHSLUNG, SPIELER, TESTS UND KONTO
+// ==========================================================================
+
+/** Übungen, die lange nicht benutzt wurden, kommen zuerst (bei Gleichstand zufällig). */
+function nachAlter(liste) {
+  const zuletzt = {};
+  for (const s of Daten.listeAlle('stunden')) {
+    for (const b of s.bloecke || []) {
+      if (b.uebungId && (!zuletzt[b.uebungId] || s.datum > zuletzt[b.uebungId])) zuletzt[b.uebungId] = s.datum;
+    }
+  }
+  return mischen(liste).sort((a, b) => (zuletzt[a.id] || '').localeCompare(zuletzt[b.id] || ''));
+}
+
+// Basis-Tests. min = 0: für Anfänger und Fortgeschritten. min = 1: nur Fortgeschritten.
+// hoeher = true: mehr ist besser. hoeher = false: weniger ist besser (z. B. Sekunden).
+const TESTS = [
+  { id: 'aufschlag-a', ziel: 'Aufschlag', min: 0, name: '10 Aufschläge', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: 'Du schlägst 10 Aufschläge. Zählt jeder Aufschlag, der im Feld landet.' },
+  { id: 'aufschlag-f', ziel: 'Aufschlag', min: 1, name: 'Aufschlag mit Ziel', einheit: 'Punkte von 20', hoeher: true,
+    anleitung: '20 Aufschläge. Jeder Treffer in die Zielzone ist 1 Punkt.' },
+  { id: 'grundlinie-a', ziel: 'Grundlinie', min: 0, name: 'Ballwechsel ohne Fehler', einheit: 'Schläge ohne Fehler', hoeher: true,
+    anleitung: 'Mit dem Partner Bälle an der Grundlinie wechseln. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
+  { id: 'grundlinie-f', ziel: 'Grundlinie', min: 1, name: 'Cross-Treffer', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: '10 Cross-Bälle in ein Zielfeld. Jeder Ball im Feld zählt.' },
+  { id: 'netzspiel-a', ziel: 'Netzspiel', min: 0, name: 'Volley-Wand 30 Sekunden', einheit: 'Volleys ohne Fehler', hoeher: true,
+    anleitung: '30 Sekunden Volleys an die Wand oder zum Partner. Zählt, wie viele ohne Fehler kommen.' },
+  { id: 'netzspiel-f', ziel: 'Netzspiel', min: 1, name: 'Volleys in Folge', einheit: 'Volleys in Folge', hoeher: true,
+    anleitung: 'Volley-Ballwechsel mit dem Partner am Netz. Zählt die längste Serie ohne Fehler.' },
+  { id: 'return-a', ziel: 'Return', min: 0, name: '10 Returns ins Feld', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: 'Der Trainer schlägt 10 Aufschläge. Zählt jeder Return, der im Feld landet.' },
+  { id: 'return-f', ziel: 'Return', min: 1, name: 'Returns gegen zweiten Aufschlag', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: '10 zweite Aufschläge. Zählt jeder Return, der im Feld landet.' },
+  { id: 'kondition-a', ziel: 'Kondition', min: 0, name: '5 Sprints à 20 Meter', einheit: 'Sekunden gesamt', hoeher: false,
+    anleitung: '5 Sprints über 20 Meter mit kurzer Pause. Gestoppt wird die Gesamtzeit. Weniger ist besser.' },
+  { id: 'kondition-f', ziel: 'Kondition', min: 1, name: 'Dauer-Rallye', einheit: 'Schläge ohne Fehler', hoeher: true,
+    anleitung: 'Ein Ballwechsel ohne Pause. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
+  { id: 'mental-a', ziel: 'Mental', min: 0, name: 'Punkt-Routine', einheit: 'Selbsteinschätzung von 1 bis 10', hoeher: true,
+    anleitung: 'Spiel 10 Punkte mit der Punkt-Routine. Bewerte dich selbst von 1 bis 10: wie gut hast du die Routine eingehalten?' },
+  { id: 'mental-f', ziel: 'Mental', min: 1, name: 'Satzball-Spiel', einheit: 'Punkte von 10', hoeher: true,
+    anleitung: 'Spiel bis 10 Punkte gegen einen Partner. Zählt deine Punkte.' },
+];
+
+const TEST_PHASEN = ['Saisonstart', 'Zwischentest', 'Saisonende'];
+
+/** Die Tests, die für ein Niveau gelten. Fortgeschrittene machen alle Tests. */
+function testsFuer(niveau) {
+  const niv = NIVEAUE.indexOf(niveau);
+  return TESTS.filter((t) => t.min <= niv);
+}
+
+/** Eine Zahl aus Text (Komma oder Punkt). */
+function zahlWert(text) {
+  return Number(String(text).trim().replace(',', '.'));
+}
+
+/** Geld im deutschen Format, z. B. 30,00 €. */
+function geld(betrag) {
+  return `${Number(betrag || 0).toFixed(2).replace('.', ',')} €`;
+}
+
+/** Der Tab „Spieler“: alle Spieler, alphabetisch. */
+function ansichtSpieler() {
+  const liste = Daten.listeAlle('spieler').sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return el('div', { class: 'stack' },
+    el('p', { class: 'muted' }, 'Trage deine Spieler ein. Mit den Tests am Saisonstart und am Saisonende siehst du, wie sich jeder verbessert hat.'),
+    el('button', { class: 'btn btn-primaer', onclick: () => oeffneSpieler(null) }, '+ Spieler'),
+    ...(liste.length
+      ? liste.map((s) => el('button', { class: 'karte', onclick: () => oeffneSpielerDetail(s.id) },
+        el('strong', { class: 'gegner-name' }, s.name),
+        el('span', { class: 'muted' }, `${s.niveau}${s.notiz ? ' · ' + s.notiz : ''}`)))
+      : [hinweis('Noch keine Spieler.')]));
+}
+
+/** Formular für einen Spieler. s = null bedeutet „neu“. */
+function oeffneSpieler(s) {
+  const f = { name: s?.name || '', niveau: s?.niveau || 'Anfänger', notiz: s?.notiz || '' };
+  const fehler = el('p', { class: 'fehler' });
+  const inhalt = el('div', { class: 'stack' },
+    feld('Name', el('input', { class: 'input', type: 'text', maxlength: '40', value: f.name, oninput(e) { f.name = e.target.value; } })),
+    el('span', { class: 'label' }, 'Niveau'),
+    auswahl(NIVEAUE.map((n) => ({ wert: n, label: n })), f.niveau, (w) => { f.niveau = w; }),
+    feld('Notiz (optional)', el('input', { class: 'input', type: 'text', maxlength: '60', value: f.notiz, oninput(e) { f.notiz = e.target.value; } })),
+    fehler,
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        if (!f.name.trim()) { fehler.textContent = 'Bitte gib einen Namen ein.'; return; }
+        const eintrag = { id: s?.id, name: f.name.trim(), niveau: f.niveau, notiz: f.notiz.trim() };
+        if (versuche(() => Daten.listeSpeichern('spieler', eintrag))) {
+          schliesseSheet();
+          zeigeToast('Spieler gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'),
+    s ? el('button', { class: 'btn btn-gefahr', onclick: () => spielerLoeschenMitFrage(s) }, 'Spieler löschen') : null);
+  oeffneSheet(s ? 'Spieler bearbeiten' : 'Neuer Spieler', inhalt, null);
+}
+
+/** Die Ansicht eines Spielers: alle Tests seines Niveaus mit Verlauf und Veränderung. */
+function oeffneSpielerDetail(id) {
+  const s = Daten.listePerId('spieler', id);
+  if (!s) return;
+  const ergebnisse = Daten.listeAlle('testergebnisse').filter((e) => e.spielerId === s.id);
+
+  const tests = testsFuer(s.niveau).map((t) => {
+    const liste = ergebnisse.filter((e) => e.testId === t.id).sort((a, b) => a.datum.localeCompare(b.datum));
+    const kopf = el('strong', {}, t.name);
+    if (!liste.length) {
+      return el('div', { class: 'karte' }, kopf, el('span', { class: 'muted' }, `${t.einheit}: noch kein Ergebnis`));
+    }
+    const erste = liste[0];
+    const letzte = liste[liste.length - 1];
+    const diff = Math.round((letzte.wert - erste.wert) * 10) / 10;
+    const besser = t.hoeher ? diff > 0 : diff < 0;
+    const veraenderung = liste.length > 1
+      ? el('p', {}, `Veränderung: ${diff > 0 ? '+' : ''}${String(diff).replace('.', ',')}${diff === 0 ? ' (gleich)' : besser ? ' (besser)' : ' (schlechter)'}`)
+      : null;
+    return el('div', { class: 'karte' }, kopf,
+      el('span', { class: 'muted' }, t.einheit),
+      ...liste.map((e) => el('div', { class: 'zeile' },
+        el('span', { class: 'label' }, `${datumDe(e.datum)} · ${e.phase}`),
+        el('p', {}, String(e.wert).replace('.', ',')),
+        el('button', { class: 'btn btn-text', onclick: () => oeffneTestergebnis(s, e) }, 'Ändern'))),
+      veraenderung);
+  });
+
+  const inhalt = el('div', { class: 'stack' },
+    el('p', { class: 'muted' }, `${s.niveau}${s.notiz ? ' · ' + s.notiz : ''}`),
+    el('p', { class: 'sektion-titel' }, 'Tests'),
+    ...tests,
+    el('button', { class: 'btn btn-primaer', onclick: () => oeffneTestergebnis(s, null) }, 'Testergebnis eintragen'),
+    el('button', { class: 'btn btn-sekundaer', onclick: () => oeffneSpieler(s) }, 'Spieler bearbeiten'));
+  oeffneSheet(s.name, inhalt, null);
+}
+
+/** Formular für ein Testergebnis. e = null bedeutet „neu“. */
+function oeffneTestergebnis(s, e) {
+  const tests = testsFuer(s.niveau);
+  const f = {
+    testId: e?.testId || tests[0].id,
+    phase: e?.phase || 'Saisonstart',
+    datum: e?.datum || heuteIso(),
+    wert: e ? String(e.wert).replace('.', ',') : '',
+  };
+  const beschreibung = el('p', { class: 'muted' });
+  const zeigeBeschreibung = () => {
+    const t = TESTS.find((x) => x.id === f.testId);
+    beschreibung.textContent = t ? `${t.anleitung} Gemessen wird: ${t.einheit}.` : '';
+  };
+  zeigeBeschreibung();
+  const fehler = el('p', { class: 'fehler' });
+
+  const inhalt = el('div', { class: 'stack' },
+    el('span', { class: 'label' }, 'Test'),
+    auswahl(tests.map((t) => ({ wert: t.id, label: t.name })), f.testId, (w) => { f.testId = w; zeigeBeschreibung(); }),
+    beschreibung,
+    el('span', { class: 'label' }, 'Zeitpunkt'),
+    auswahl(TEST_PHASEN.map((p) => ({ wert: p, label: p })), f.phase, (w) => { f.phase = w; }),
+    feld('Datum', el('input', { class: 'input', type: 'date', value: f.datum, oninput(ev) { f.datum = ev.target.value; } })),
+    feld('Ergebnis', el('input', {
+      class: 'input zahl', type: 'text', inputmode: 'decimal', placeholder: 'z. B. 7',
+      value: f.wert, oninput(ev) { f.wert = ev.target.value; },
+    })),
+    fehler,
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        const wert = zahlWert(f.wert);
+        if (f.wert.trim() === '' || Number.isNaN(wert) || wert < 0) { fehler.textContent = 'Bitte gib eine Zahl ein (0 oder mehr).'; return; }
+        if (!f.datum) { fehler.textContent = 'Bitte wähle ein Datum.'; return; }
+        const eintrag = { id: e?.id, spielerId: s.id, testId: f.testId, phase: f.phase, datum: f.datum, wert };
+        if (versuche(() => Daten.listeSpeichern('testergebnisse', eintrag))) {
+          schliesseSheet();
+          zeigeToast('Ergebnis gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'),
+    e ? el('button', { class: 'btn btn-gefahr', onclick: () => testergebnisLoeschenMitFrage(s, e) }, 'Ergebnis löschen') : null);
+
+  oeffneSheet(`Test: ${s.name}`, inhalt, null);
+}
+
+/** Löscht ein Testergebnis (nach Nachfrage). */
+async function testergebnisLoeschenMitFrage(s, e) {
+  const ja = await fragen({ titel: 'Ergebnis löschen?', text: 'Dieses Testergebnis wird entfernt.', ok: 'Löschen', gefahr: true });
+  if (!ja) return;
+  if (versuche(() => Daten.listeLoeschen('testergebnisse', e.id))) {
+    schliesseSheet();
+    zeigeToast('Ergebnis gelöscht');
+    render();
+  }
+}
+
+/** Löscht einen Spieler samt allen Testergebnissen (nach Nachfrage). */
+async function spielerLoeschenMitFrage(s) {
+  const ja = await fragen({
+    titel: 'Spieler löschen?',
+    text: `„${s.name}“ und alle seine Testergebnisse werden gelöscht.`,
+    ok: 'Löschen',
+    gefahr: true,
+  });
+  if (!ja) return;
+  if (versuche(() => {
+    for (const e of Daten.listeAlle('testergebnisse').filter((x) => x.spielerId === s.id)) {
+      Daten.listeLoeschen('testergebnisse', e.id);
+    }
+    Daten.listeLoeschen('spieler', s.id);
+  })) {
+    schliesseSheet();
+    zeigeToast('Spieler gelöscht');
+    render();
+  }
+}
+
+// ---------- Konto: Freitage 14 bis 16 Uhr ----------
+
+const KONTO_ARTEN = {
+  uebernommen: 'Übernommen (ich habe gehalten)',
+  vertreten: 'Abgegeben (andere hat gehalten)',
+  ausgefallen: 'Ausgefallen (keine Stunde)',
+  zahlung: 'Zahlung erhalten',
+};
+
+/** Die Einstellungen des Kontos: Satz je Stunde, Dauer in Stunden, Startdatum. */
+function kontoEinstellungen() {
+  return {
+    satz: Number(Daten.einstellungLesen('kontoSatz')) || 15,
+    dauer: Number(Daten.einstellungLesen('kontoDauer')) || 2,
+    start: Daten.einstellungLesen('kontoStart'),
+  };
+}
+
+/**
+ * Rechnet alle Freitage ab dem Startdatum durch. Ein Freitag zählt automatisch als gegeben,
+ * außer es gibt einen Eintrag dafür: „übernommen“ (mit eigener Dauer), „abgegeben“ oder „ausgefallen“.
+ * Übernommene Stunden an anderen Tagen zählen zusätzlich. Zahlungen werden abgezogen.
+ */
+function kontoBerechnen() {
+  const { satz, dauer, start } = kontoEinstellungen();
+  const eintraege = Daten.listeAlle('kontoEintraege');
+  const heute = heuteIso();
+  const zeilen = [];
+
+  if (start && start <= heute) {
+    const ende = new Date(heute + 'T00:00:00');
+    for (let d = new Date(start + 'T00:00:00'); d <= ende; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 5) continue;                       // nur Freitage
+      const iso = isoVon(d);
+      const am = eintraege.filter((e) => e.datum === iso);
+      const aus = am.find((x) => x.art === 'ausgefallen' || x.art === 'vertreten');
+      const uebern = am.find((x) => x.art === 'uebernommen');
+      if (aus) {
+        zeilen.push({ datum: iso, status: KONTO_ARTEN[aus.art], stunden: 0 });
+      } else if (uebern) {
+        zeilen.push({ datum: iso, status: 'Übernommen', stunden: Number(uebern.dauer) || dauer });
+      } else {
+        zeilen.push({ datum: iso, status: 'Gegeben (automatisch)', stunden: dauer, auto: true });
+      }
+    }
+  }
+
+  // Übernommene Stunden an Tagen, die kein gezählter Freitag sind
+  const freitagsDaten = new Set(zeilen.map((z) => z.datum));
+  for (const e of eintraege) {
+    if (e.art === 'uebernommen' && !freitagsDaten.has(e.datum)) {
+      zeilen.push({ datum: e.datum, status: 'Übernommen', stunden: Number(e.dauer) || dauer });
+    }
+  }
+  zeilen.sort((a, b) => b.datum.localeCompare(a.datum));
+
+  const stunden = zeilen.reduce((summe, z) => summe + z.stunden, 0);
+  const verdient = stunden * satz;
+  const bezahlt = eintraege
+    .filter((e) => e.art === 'zahlung')
+    .reduce((summe, e) => summe + (Number(e.betrag) || 0), 0);
+  return { zeilen, stunden, verdient, bezahlt, offen: verdient - bezahlt };
+}
+
+/** Der Tab „Konto“: offener Betrag, alle Freitage und alle Einträge. */
+function ansichtKonto() {
+  if (!Daten.einstellungLesen('kontoStart')) Daten.einstellungSpeichern('kontoStart', heuteIso());
+  const k = kontoBerechnen();
+  const e = kontoEinstellungen();
+  const eintraege = Daten.listeAlle('kontoEintraege');
+
+  return el('div', { class: 'stack' },
+    el('div', { class: 'bilanz-karte' },
+      el('span', { class: 'label' }, 'Offen (noch nicht bezahlt)'),
+      el('span', { class: 'bilanz-zahl' }, geld(k.offen)),
+      el('span', { class: 'muted' }, `verdient ${geld(k.verdient)} · bezahlt ${geld(k.bezahlt)} · ${k.stunden} Std.`)),
+    el('p', { class: 'muted' },
+      `Freitags 14:00 bis 16:00 Uhr zählen automatisch als gegeben, solange du nichts einträgst. ${e.dauer} Std. à ${geld(e.satz)} je Stunde. Gezählt ab ${datumDe(e.start)}.`),
+    el('button', { class: 'btn btn-primaer', onclick: () => oeffneKontoEintrag(null, null) }, '+ Eintrag (übernommen, Zahlung …)'),
+    el('button', { class: 'btn btn-sekundaer', onclick: oeffneKontoEinstellungen }, 'Satz, Dauer und Startdatum ändern'),
+
+    el('p', { class: 'sektion-titel' }, 'Stunden'),
+    ...(k.zeilen.length
+      ? k.zeilen.map((z) => el('button', { class: 'karte', onclick: () => oeffneKontoEintrag(null, z.datum) },
+        el('strong', { class: 'gegner-name' }, `${datumDe(z.datum)} · ${z.status}`),
+        el('span', { class: 'muted' }, `${z.stunden} Std. · ${geld(z.stunden * e.satz)}`)))
+      : [hinweis('Noch keine Stunden gezählt. Prüfe das Startdatum unter „Satz, Dauer und Startdatum“.')]),
+
+    el('p', { class: 'sektion-titel' }, 'Einträge und Zahlungen'),
+    ...(eintraege.length
+      ? eintraege.map((x) => el('button', { class: 'karte', onclick: () => oeffneKontoEintrag(x, null) },
+        el('strong', { class: 'gegner-name' }, `${datumDe(x.datum)} · ${KONTO_ARTEN[x.art] || x.art}`),
+        el('span', { class: 'muted' }, x.art === 'zahlung'
+          ? geld(x.betrag)
+          : `${x.dauer ? x.dauer + ' Std.' : ''}${x.notiz ? ' · ' + x.notiz : ''}`)))
+      : [hinweis('Noch keine Einträge.')]));
+}
+
+/** Formular für einen Konto-Eintrag. x = null bedeutet „neu“, datumVorgabe füllt das Datum vor. */
+function oeffneKontoEintrag(x, datumVorgabe) {
+  const e0 = kontoEinstellungen();
+  const f = {
+    datum: x?.datum || datumVorgabe || heuteIso(),
+    art: x?.art || 'uebernommen',
+    dauer: String(x?.dauer ?? e0.dauer).replace('.', ','),
+    betrag: x && x.betrag ? String(x.betrag).replace('.', ',') : '',
+    notiz: x?.notiz || '',
+  };
+  const fehler = el('p', { class: 'fehler' });
+  const inhalt = el('div', { class: 'stack' },
+    feld('Datum', el('input', { class: 'input', type: 'date', value: f.datum, oninput(ev) { f.datum = ev.target.value; } })),
+    el('span', { class: 'label' }, 'Art'),
+    auswahl(Object.entries(KONTO_ARTEN).map(([wert, label]) => ({ wert, label })), f.art, (w) => { f.art = w; }),
+    feld('Dauer in Stunden (bei „übernommen“)', el('input', {
+      class: 'input zahl', type: 'text', inputmode: 'decimal', value: f.dauer,
+      oninput(ev) { f.dauer = ev.target.value; },
+    })),
+    feld('Betrag in € (bei „Zahlung“)', el('input', {
+      class: 'input zahl', type: 'text', inputmode: 'decimal', placeholder: 'z. B. 60', value: f.betrag,
+      oninput(ev) { f.betrag = ev.target.value; },
+    })),
+    feld('Notiz (optional)', el('input', {
+      class: 'input', type: 'text', maxlength: '80', value: f.notiz,
+      oninput(ev) { f.notiz = ev.target.value; },
+    })),
+    fehler,
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        if (!f.datum) { fehler.textContent = 'Bitte wähle ein Datum.'; return; }
+        const dauer = zahlWert(f.dauer) || 0;
+        const betrag = zahlWert(f.betrag) || 0;
+        if (f.art === 'uebernommen' && dauer <= 0) { fehler.textContent = 'Bitte gib die Dauer in Stunden ein.'; return; }
+        if (f.art === 'zahlung' && betrag <= 0) { fehler.textContent = 'Bitte gib den Betrag ein.'; return; }
+        const eintrag = { id: x?.id, datum: f.datum, art: f.art, dauer, betrag, notiz: f.notiz.trim() };
+        if (versuche(() => Daten.listeSpeichern('kontoEintraege', eintrag))) {
+          schliesseSheet();
+          zeigeToast('Gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'),
+    x ? el('button', { class: 'btn btn-gefahr', onclick: () => kontoEintragLoeschenMitFrage(x) }, 'Eintrag löschen') : null);
+  oeffneSheet(x ? 'Eintrag bearbeiten' : 'Neuer Eintrag', inhalt, null);
+}
+
+/** Löscht einen Konto-Eintrag (nach Nachfrage). */
+async function kontoEintragLoeschenMitFrage(x) {
+  const ja = await fragen({ titel: 'Eintrag löschen?', text: 'Der Eintrag wird entfernt.', ok: 'Löschen', gefahr: true });
+  if (!ja) return;
+  if (versuche(() => Daten.listeLoeschen('kontoEintraege', x.id))) {
+    schliesseSheet();
+    zeigeToast('Eintrag gelöscht');
+    render();
+  }
+}
+
+/** Satz, Dauer und Startdatum des Kontos ändern. */
+function oeffneKontoEinstellungen() {
+  const e = kontoEinstellungen();
+  const f = { satz: String(e.satz).replace('.', ','), dauer: String(e.dauer).replace('.', ','), start: e.start || heuteIso() };
+  const inhalt = el('div', { class: 'stack' },
+    feld('Satz in € je Stunde', el('input', {
+      class: 'input zahl', type: 'text', inputmode: 'decimal', value: f.satz,
+      oninput(ev) { f.satz = ev.target.value; },
+    })),
+    feld('Dauer einer Stunde in Stunden (14 bis 16 Uhr = 2)', el('input', {
+      class: 'input zahl', type: 'text', inputmode: 'decimal', value: f.dauer,
+      oninput(ev) { f.dauer = ev.target.value; },
+    })),
+    feld('Freitage zählen ab (Datum)', el('input', {
+      class: 'input', type: 'date', value: f.start,
+      oninput(ev) { f.start = ev.target.value; },
+    })),
+    el('button', {
+      class: 'btn btn-primaer',
+      onclick() {
+        const satz = zahlWert(f.satz);
+        const dauer = zahlWert(f.dauer);
+        if (!(satz > 0) || !(dauer > 0) || !f.start) { zeigeToast('Bitte Satz, Dauer und Startdatum prüfen.'); return; }
+        const ok = versuche(() => {
+          Daten.einstellungSpeichern('kontoSatz', satz);
+          Daten.einstellungSpeichern('kontoDauer', dauer);
+          Daten.einstellungSpeichern('kontoStart', f.start);
+        });
+        if (ok) {
+          schliesseSheet();
+          zeigeToast('Gespeichert');
+          render();
+        }
+      },
+    }, 'Speichern'));
+  oeffneSheet('Konto-Einstellungen', inhalt, null);
+}
+
 /** Zeichnet den Inhalt des gerade gewählten Tabs neu. */
 function render() {
   document.querySelectorAll('.tab').forEach((t) =>
@@ -1251,7 +1748,7 @@ function render() {
 
   $('titel').textContent = TAB_TITEL[aktiverTab];
 
-  const ansichten = { stunden: ansichtStunden, saison: ansichtSaison, uebungen: ansichtUebungen };
+  const ansichten = { stunden: ansichtStunden, saison: ansichtSaison, uebungen: ansichtUebungen, spieler: ansichtSpieler, konto: ansichtKonto };
   const ansicht = ansichten[aktiverTab]();
 
   $('inhalt').replaceChildren(...[sicherungKarte(), ansicht].filter(Boolean));

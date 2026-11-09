@@ -101,6 +101,9 @@ Die App hat drei Tabs unten:
   - **Woche hinzufügen / löschen**, **Plan bearbeiten**, **Saisonplan löschen**.
 - **Übungen:** Alle Übungen nach Ziel. Antippen ändert eine Übung, „+ Neue Übung“ legt eine an. Mit „Standardübungen wiederherstellen“ kommt die ursprüngliche Liste zurück (eigene Übungen gehen dabei verloren).
 
+- **Spieler:** Trage deine Spieler mit Niveau ein. Bei jedem Spieler gibt es die Tests für sein Niveau. Trage am Saisonstart und am Saisonende die Ergebnisse ein, dann zeigt die App die Veränderung.
+- **Konto:** Jeder Freitag von 14 bis 16 Uhr zählt automatisch als gegeben, solange du nichts einträgst. Hast du an einem Freitag nicht gehalten, trägst du „abgegeben“ oder „ausgefallen“ ein. Übernommene Stunden an anderen Tagen trägst du mit „übernommen“ ein. Zahlungen trägst du als „Zahlung erhalten“ ein. Der offene Betrag ist das, was dir noch bezahlt werden muss.
+
 **Tipp:** Exportiere ab und zu eine Sicherung (Zahnrad oben rechts). So geht nichts verloren, auch wenn der Browser seine Daten löscht.
 
 **Sicherungs-Erinnerung:** Ist deine letzte Sicherung 14 Tage oder älter, zeigt die App oben eine Erinnerung. Mit „In 3 Tagen“ schiebst du sie auf. Die Erinnerung erscheint nur, wenn du die App öffnest. Sie ist keine Benachrichtigung auf dem Handy.
