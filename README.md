@@ -87,7 +87,7 @@ Wenn du etwas an der App änderst, lade die geänderten Dateien auf GitHub hoch 
 
 ## 4. So benutzt du die App
 
-Die App hat drei Tabs unten:
+Die App hat fünf Tabs unten. Neu in Version 2 sind die Suche in den Stunden, Übungen und Spielern, die Favoriten bei den Übungen, der Gruppen-Überblick bei den Spielern, die Monatsübersicht und der CSV-Export im Konto sowie der Schutz vor defekten Daten.
 
 - **Stunden:** Gib Anzahl der Spieler, Niveau (Anfänger oder Fortgeschritten), Ziel (Aufschlag, Grundlinie, Netzspiel, Return, Kondition, Mental) und Dauer ein. Dann erstellt die App eine Stunde mit Aufwärmen, Übungen, Spiel und Ausklang.
   - **Neue Stunde (andere Übungen):** Gefällt dir die Stunde nicht, bekommst du andere Übungen.

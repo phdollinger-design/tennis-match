@@ -601,6 +601,22 @@ button.karte { cursor: pointer; }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ---------- Balken (Fortschritt, Testergebnisse, Gruppenüberblick) ---------- */
+.spur {
+  width: 100%;
+  height: 10px;
+  border-radius: 6px;
+  background: var(--karte-2);
+  overflow: hidden;
+}
+
+.fuell {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--akzent);
+  transition: width 0.4s ease-out;
+}
+
 /* Kleine Bewegung für Leute, die das wünschen: Animationen abschalten */
 @media (prefers-reduced-motion: reduce) {
   .atem-kreis { transition-duration: 0.01s !important; }

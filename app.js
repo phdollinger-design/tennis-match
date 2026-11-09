@@ -1,14 +1,16 @@
 /**
- * app.js – die Bedienlogik der Trainer-App.
+ * app.js – die Bedienlogik der Trainer-App (Version 2).
  *
  * Aufbau dieser Datei:
- *  1. Feste Werte (Ziele, Niveaus, Standardübungen, Saison-Varianten)
+ *  1. Feste Werte (Ziele, Niveaus, Standardübungen, Tests, Saison-Varianten)
  *  2. Zustand und kleine Helfer
- *  3. Übungen und Trainingsstunden erstellen
- *  4. Tab „Stunden“ (Erstellen, gespeicherte Stunden, Erinnerungen, Übergaben)
- *  5. Tab „Saison“ (Saisonpläne, Wochen bearbeiten)
- *  6. Tab „Übungen“ (alle Übungen ansehen, ändern, ergänzen)
- *  7. Einstellungen (Sicherung, Import, Löschen) und Start
+ *  3. Trainingsstunden erstellen (Generator, Abwechslung)
+ *  4. Tab „Stunden“
+ *  5. Tab „Saison“
+ *  6. Tab „Übungen“
+ *  7. Tab „Spieler“ und Tests
+ *  8. Tab „Konto“ (Freitage, Abrechnung)
+ *  9. Einstellungen, Sicherung, Start
  *
  * Alle Daten holt und speichert diese Datei über storage.js (als „Daten“ importiert).
  */
@@ -22,7 +24,8 @@ import * as Daten from './storage.js';
 const ZIELE = ['Aufschlag', 'Grundlinie', 'Netzspiel', 'Return', 'Kondition', 'Mental'];
 const NIVEAUE = ['Anfänger', 'Fortgeschritten'];
 const DAUERN = [60, 90, 120];
-const GRUPPEN_WOCHEN = [8, 12, 16, 20];
+const WOCHEN_OPTIONEN = [8, 12, 16, 20];
+const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // Das Spiel am Ende der Stunde, je Niveau (0 = Anfänger, 1 = Fortgeschritten)
 const SPIELE = [
@@ -87,7 +90,6 @@ const STANDARD_UEBUNGEN_ROH = [
   ['Mental', 1, 'Druck-Tiebreak', 'Tiebreak spielen, Zuschauer simulieren, keine Ausreden.'],
   ['Mental', 1, 'Gegner-Analyse', 'Zwei spielen gegeneinander, die anderen beobachten und geben nach dem Punkt Feedback.'],
 
-  // --- Erweiterung auf 120 Übungen (je Ziel 20) ---
   ['Aufschlag', 0, 'Ballwurf-Kontrolle', 'Ball 20 Mal hochwerfen und immer am gleichen Punkt fangen. Dann daraus einen Aufschlag machen.'],
   ['Aufschlag', 0, 'Beinarbeit im Aufschlag', 'Schrittfolge üben: Stand, Ballwurf, Beinschub. Erst ohne Schläger, dann mit Ball.'],
   ['Aufschlag', 0, 'Treffer am Körbchen', 'Ein Körbchen in die Aufschlagzone stellen. 10 Bälle, jeder Treffer im Körbchen ist ein Punkt.'],
@@ -177,9 +179,46 @@ const STANDARD_UEBUNGEN = STANDARD_UEBUNGEN_ROH.map(([ziel, min, name, text], i)
   ({ id: `std${i}`, ziel, min, name, text }));
 
 /**
- * Saison-Varianten. Jede Phase bekommt einen Anteil am Gesamtplan und eine Liste von Zielen,
- * die der Reihe nach durchlaufen werden.
+ * Basis-Tests. min = 0: für Anfänger und Fortgeschritten. min = 1: nur Fortgeschritten.
+ * hoeher = true: mehr ist besser. hoeher = false: weniger ist besser (z. B. Sekunden).
  */
+const TESTS = [
+  { id: 'aufschlag-a', ziel: 'Aufschlag', min: 0, name: '10 Aufschläge', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: 'Du schlägst 10 Aufschläge. Zählt jeder Aufschlag, der im Feld landet.' },
+  { id: 'aufschlag-f', ziel: 'Aufschlag', min: 1, name: 'Aufschlag mit Ziel', einheit: 'Punkte von 20', hoeher: true,
+    anleitung: '20 Aufschläge. Jeder Treffer in die Zielzone ist 1 Punkt.' },
+  { id: 'grundlinie-a', ziel: 'Grundlinie', min: 0, name: 'Ballwechsel ohne Fehler', einheit: 'Schläge ohne Fehler', hoeher: true,
+    anleitung: 'Mit dem Partner Bälle an der Grundlinie wechseln. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
+  { id: 'grundlinie-f', ziel: 'Grundlinie', min: 1, name: 'Cross-Treffer', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: '10 Cross-Bälle in ein Zielfeld. Jeder Ball im Feld zählt.' },
+  { id: 'netzspiel-a', ziel: 'Netzspiel', min: 0, name: 'Volley-Wand 30 Sekunden', einheit: 'Volleys ohne Fehler', hoeher: true,
+    anleitung: '30 Sekunden Volleys an die Wand oder zum Partner. Zählt, wie viele ohne Fehler kommen.' },
+  { id: 'netzspiel-f', ziel: 'Netzspiel', min: 1, name: 'Volleys in Folge', einheit: 'Volleys in Folge', hoeher: true,
+    anleitung: 'Volley-Ballwechsel mit dem Partner am Netz. Zählt die längste Serie ohne Fehler.' },
+  { id: 'return-a', ziel: 'Return', min: 0, name: '10 Returns ins Feld', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: 'Der Trainer schlägt 10 Aufschläge. Zählt jeder Return, der im Feld landet.' },
+  { id: 'return-f', ziel: 'Return', min: 1, name: 'Returns gegen zweiten Aufschlag', einheit: 'Treffer von 10', hoeher: true,
+    anleitung: '10 zweite Aufschläge. Zählt jeder Return, der im Feld landet.' },
+  { id: 'kondition-a', ziel: 'Kondition', min: 0, name: '5 Sprints à 20 Meter', einheit: 'Sekunden gesamt', hoeher: false,
+    anleitung: '5 Sprints über 20 Meter mit kurzer Pause. Gestoppt wird die Gesamtzeit. Weniger ist besser.' },
+  { id: 'kondition-f', ziel: 'Kondition', min: 1, name: 'Dauer-Rallye', einheit: 'Schläge ohne Fehler', hoeher: true,
+    anleitung: 'Ein Ballwechsel ohne Pause. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
+  { id: 'mental-a', ziel: 'Mental', min: 0, name: 'Punkt-Routine', einheit: 'Selbsteinschätzung von 1 bis 10', hoeher: true,
+    anleitung: 'Spiel 10 Punkte mit der Punkt-Routine. Bewerte dich selbst von 1 bis 10: wie gut hast du die Routine eingehalten?' },
+  { id: 'mental-f', ziel: 'Mental', min: 1, name: 'Satzball-Spiel', einheit: 'Punkte von 10', hoeher: true,
+    anleitung: 'Spiel bis 10 Punkte gegen einen Partner. Zählt deine Punkte.' },
+];
+
+const TEST_PHASEN = ['Saisonstart', 'Zwischentest', 'Saisonende'];
+
+const KONTO_ARTEN = {
+  uebernommen: 'Übernommen (ich habe gehalten)',
+  vertreten: 'Abgegeben (andere hat gehalten)',
+  ausgefallen: 'Ausgefallen (keine Stunde)',
+  zahlung: 'Zahlung erhalten',
+};
+
+/** Saison-Varianten. Jede Phase hat einen Anteil am Plan und eine Liste von Zielen. */
 const SAISON_VARIANTEN = [
   {
     id: 'ausgewogen', name: 'Ausgewogen',
@@ -233,22 +272,25 @@ const SAISON_VARIANTEN = [
 // 2. ZUSTAND UND KLEINE HELFER
 // ==========================================================================
 
-let aktiverTab = 'stunden';                 // 'stunden', 'saison' oder 'uebungen'
+let aktiverTab = 'stunden';                 // 'stunden', 'saison', 'uebungen', 'spieler' oder 'konto'
 let sheetZurueckFn = null;                  // Was der Knopf oben links im Formular tut
 let toastTimer = null;                      // Timer für die kurze Meldung unten
 
-// Der Trainer-Formular-Zustand (bleibt beim Tab-Wechsel erhalten)
+// Stunden-Formular (bleibt beim Tab-Wechsel erhalten)
 const trainer = { gruppe: 4, niveau: 'Anfänger', ziel: 'Aufschlag', dauer: 60, plan: null };
 
-// Saisonplan: welcher Plan offen ist, ob das Formular für einen neuen Plan offen ist, und seine Eingaben
+// Saisonplan: offener Plan, Formular-Zustand
 let saisonAuswahl = null;
 let saisonFormOffen = false;
 let saisonForm = null;
 
-// Übungen: aktiver Filter (Ziel oder 'Alle')
-let uebungFilter = 'Alle';
+// Übungen: Filter und Suche
+const uebungFilter = { ziel: 'Alle', niveau: 'Alle', nurFavoriten: false, suche: '' };
 
-/** Kürzel für document.getElementById – spart Tipparbeit. */
+// Spieler: Suche
+let spielerSuche = '';
+
+/** Kürzel für document.getElementById. */
 function $(id) {
   return document.getElementById(id);
 }
@@ -265,7 +307,7 @@ function el(tag, eigenschaften = {}, ...kinder) {
     else if (name === 'value') knoten.value = wert;
     else if (name === 'checked') knoten.checked = true;
     else if (name.startsWith('on') && typeof wert === 'function') {
-      knoten.addEventListener(name.slice(2), wert);          // z. B. onclick -> "click"
+      knoten.addEventListener(name.slice(2), wert);
     } else knoten.setAttribute(name, wert === true ? '' : wert);
   }
   for (const kind of kinder.flat()) {
@@ -275,7 +317,7 @@ function el(tag, eigenschaften = {}, ...kinder) {
   return knoten;
 }
 
-/** Ein Datum als Text im Format JJJJ-MM-TT (so wie ein Datumsfeld es braucht). */
+/** Ein Datum im Format JJJJ-MM-TT. */
 function isoVon(d) {
   const monat = String(d.getMonth() + 1).padStart(2, '0');
   const tag = String(d.getDate()).padStart(2, '0');
@@ -287,14 +329,14 @@ function heuteIso() {
   return isoVon(new Date());
 }
 
-/** Ein Datum um n Tage verschieben (Eingabe und Ergebnis im Format JJJJ-MM-TT). */
+/** Ein Datum um n Tage verschieben. */
 function addTage(iso, n) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + n);
   return isoVon(d);
 }
 
-/** Der nächste Montag als Datum (für den Start eines Saisonplans). */
+/** Der nächste Montag (Startvorschlag für einen Saisonplan). */
 function naechsterMontag() {
   const d = new Date();
   let diff = (8 - d.getDay()) % 7;
@@ -303,30 +345,50 @@ function naechsterMontag() {
   return isoVon(d);
 }
 
-/** Datum von JJJJ-MM-TT nach TT.MM.JJJJ (deutsche Schreibweise). */
+/** Datum von JJJJ-MM-TT nach TT.MM.JJJJ. */
 function datumDe(iso) {
   if (!iso) return '';
   const [jahr, monat, tag] = iso.split('-');
   return `${tag}.${monat}.${jahr}`;
 }
 
-/** Eine tiefe Kopie (damit Änderungen im Formular nicht schon die gespeicherten Daten ändern). */
+/** Monatsname aus JJJJ-MM, z. B. „November 2026“. */
+function monatDe(jahrMonat) {
+  return `${MONATE[Number(jahrMonat.slice(5, 7)) - 1]} ${jahrMonat.slice(0, 4)}`;
+}
+
+/** Eine tiefe Kopie, damit Änderungen im Formular die gespeicherten Daten nicht verändern. */
 function kopie(wert) {
   return JSON.parse(JSON.stringify(wert));
 }
 
-/** Eine kurze, zufällige ID für Wochen und Übungen. */
+/** Eine kurze, zufällige ID. */
 function kurzId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Kurze Meldung unten am Bildschirm, verschwindet nach ca. 2 Sekunden. */
+/** Eine Zahl aus Text (Komma oder Punkt). */
+function zahlWert(text) {
+  return Number(String(text).trim().replace(',', '.'));
+}
+
+/** Zahl im deutschen Format, z. B. 7,5. */
+function zahlDe(n) {
+  return String(Math.round(Number(n) * 10) / 10).replace('.', ',');
+}
+
+/** Geld im deutschen Format, z. B. 30,00 €. */
+function geld(betrag) {
+  return `${Number(betrag || 0).toFixed(2).replace('.', ',')} €`;
+}
+
+/** Kurze Meldung unten am Bildschirm. */
 function zeigeToast(text) {
   const toast = $('toast');
   toast.textContent = text;
   toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, 2200);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 2400);
 }
 
 /** Führt eine Speicher-Aktion aus. Klappt sie nicht, zeigt die App eine Meldung. */
@@ -341,12 +403,25 @@ function versuche(aktion) {
   }
 }
 
-/** Ein beschriftetes Feld (Beschriftung oben, Eingabe darunter). */
+/** Lädt einen Text als Datei herunter (Sicherung, CSV-Abrechnung). */
+function dateiHerunterladen(name, text, typ) {
+  const blob = new Blob([text], { type: typ });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Ein beschriftetes Feld. */
 function feld(beschriftung, eingabe) {
   return el('label', { class: 'feld' }, el('span', { class: 'label' }, beschriftung), eingabe);
 }
 
-/** Ein Hinweis-Kasten, z. B. „Noch keine Stunden“. */
+/** Ein Hinweis-Kasten. */
 function hinweis(text) {
   return el('p', { class: 'hinweis' }, text);
 }
@@ -356,6 +431,13 @@ function infoZeile(beschriftung, text) {
   return el('div', { class: 'zeile' },
     el('span', { class: 'label' }, beschriftung),
     el('p', {}, text));
+}
+
+/** Ein Balken: zeigt den Anteil wert/max an. */
+function balken(wert, max, farbe = 'var(--akzent)') {
+  const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((wert / max) * 100))) : 0;
+  return el('div', { class: 'spur', role: 'presentation' },
+    el('div', { class: 'fuell', style: `width:${pct}%;background:${farbe}` }));
 }
 
 /**
@@ -369,9 +451,11 @@ function auswahl(optionen, aktuell, onWahl) {
     const knopf = el('button', {
       type: 'button',
       class: 'chip' + (option.wert === aktuell ? ' aktiv' : ''),
+      'aria-pressed': option.wert === aktuell ? 'true' : 'false',
       onclick() {
-        knoepfe.forEach((k) => k.classList.remove('aktiv'));
+        knoepfe.forEach((k) => { k.classList.remove('aktiv'); k.setAttribute('aria-pressed', 'false'); });
         knopf.classList.add('aktiv');
+        knopf.setAttribute('aria-pressed', 'true');
         onWahl(option.wert);
       },
     }, option.label);
@@ -381,7 +465,7 @@ function auswahl(optionen, aktuell, onWahl) {
   return box;
 }
 
-/** Die eigene Bestätigung in der App (statt des Browser-Dialogs). Gibt true zurück, wenn „Ja“. */
+/** Die eigene Bestätigung in der App. Gibt true zurück, wenn „Ja“. */
 function fragen({ titel, text, ok = 'Ja', gefahr = false }) {
   return new Promise((aufloesen) => {
     $('dialog-titel').textContent = titel;
@@ -418,21 +502,7 @@ function schliesseSheet() {
   sheetZurueckFn = null;
 }
 
-// ==========================================================================
-// 3. ÜBUNGEN UND TRAININGSSTUNDEN ERSTELLEN
-// ==========================================================================
-
-/** Alle aktiven Übungen: die eigene Liste, oder – wenn nichts geändert wurde – die Standardliste. */
-function uebungenAktiv() {
-  return Daten.uebungenLesen() || STANDARD_UEBUNGEN;
-}
-
-/** Übungen zu einem Ziel, die für das Niveau passen (Niveau als Zahl: 0 oder 1). */
-function passendeUebungen(ziel, niveauNummer) {
-  return uebungenAktiv().filter((u) => u.ziel === ziel && u.min <= niveauNummer);
-}
-
-/** Mischt eine Liste zufällig (Fisher-Yates), damit jede neue Stunde anders ist. */
+/** Mischt eine Liste zufällig (Fisher-Yates). */
 function mischen(liste) {
   const kopieListe = liste.slice();
   for (let i = kopieListe.length - 1; i > 0; i--) {
@@ -440,6 +510,42 @@ function mischen(liste) {
     [kopieListe[i], kopieListe[j]] = [kopieListe[j], kopieListe[i]];
   }
   return kopieListe;
+}
+
+// ==========================================================================
+// 3. ÜBUNGEN UND TRAININGSSTUNDEN ERSTELLEN
+// ==========================================================================
+
+/** Alle aktiven Übungen: die eigene Liste oder – wenn nichts geändert wurde – die Standardliste. */
+function uebungenAktiv() {
+  return Daten.uebungenLesen() || STANDARD_UEBUNGEN;
+}
+
+/** Die Favoriten (Liste von Übungs-IDs). */
+function favoriten() {
+  return Daten.einstellungLesen('favoriten') || [];
+}
+
+/** Übungen zu einem Ziel, die für das Niveau passen (0 = Anfänger, 1 = Fortgeschritten). */
+function passendeUebungen(ziel, niveauNummer) {
+  return uebungenAktiv().filter((u) => u.ziel === ziel && u.min <= niveauNummer);
+}
+
+/**
+ * Sortiert Übungen so, dass lange nicht genutzte zuerst kommen.
+ * Bei Gleichstand gewinnen Favoriten, dann kommt der Zufall.
+ */
+function nachAlter(liste) {
+  const zuletzt = {};
+  for (const s of Daten.listeAlle('stunden')) {
+    for (const b of s.bloecke || []) {
+      if (b.uebungId && (!zuletzt[b.uebungId] || s.datum > zuletzt[b.uebungId])) zuletzt[b.uebungId] = s.datum;
+    }
+  }
+  const fav = favoriten();
+  return mischen(liste).sort((a, b) =>
+    (zuletzt[a.id] || '').localeCompare(zuletzt[b.id] || '') ||
+    (fav.includes(b.id) ? 1 : 0) - (fav.includes(a.id) ? 1 : 0));
 }
 
 /** Hinweis zur Gruppengröße. */
@@ -452,7 +558,6 @@ function gruppenHinweis(n) {
 /**
  * Erstellt eine Trainingsstunde aus Gruppe, Niveau, Ziel und Dauer.
  * Aufbau: Aufwärmen 10 Min, Übungen, Spiel 10 Min, Ausklang (der Rest).
- * Jeder Übungsblock merkt sich seine Übung (uebungId), damit man sie später tauschen kann.
  */
 function trainingsplanErstellen({ gruppe, niveau, ziel, dauer }) {
   const niv = NIVEAUE.indexOf(niveau);
@@ -460,7 +565,6 @@ function trainingsplanErstellen({ gruppe, niveau, ziel, dauer }) {
   const spiel = 10;
   const haupt = dauer - aufwaermen - spiel - 10;          // 60 Min → 30 Min Übungen
   const pool = nachAlter(passendeUebungen(ziel, niv));
-  // Höchstens 4 Übungen, mindestens 10 Min je Übung, nie mehr als vorhanden
   const anzahl = pool.length ? Math.min(4, pool.length, Math.max(1, Math.floor(haupt / 10))) : 0;
   const minuten = anzahl ? Math.floor(haupt / anzahl) : 0;
 
@@ -496,12 +600,13 @@ function erstelleNeueStunde() {
   render();
 }
 
-/** Eine Trainingsstunde als Karte mit allen Blöcken, Notizen und Übergaben. */
+/** Eine Trainingsstunde als Karte mit Blöcken, Notizen und Übergaben. */
 function stundeKarte(s) {
   const uebergaben = s.uebergaben || [];
+  const gesamt = s.bloecke.reduce((summe, b) => summe + (Number(b.minuten) || 0), 0);
   return el('div', { class: 'karte' },
     el('span', { class: 'label' }, `${s.dauer} Min · ${s.niveau} · ${s.ziel} · ${s.gruppe} Spieler`),
-    el('p', { class: 'muted' }, gruppenHinweis(s.gruppe)),
+    el('p', { class: 'muted' }, `${gruppenHinweis(s.gruppe)} Gesamt: ${gesamt} Min.`),
     ...s.bloecke.map((b) => el('div', { class: 'zeile' },
       el('span', { class: 'label' }, `${b.minuten} Min · ${b.titel}`),
       el('p', {}, b.text))),
@@ -514,15 +619,48 @@ function stundeKarte(s) {
 // 4. TAB „STUNDEN“
 // ==========================================================================
 
-/** Der Tab „Stunden“: Erinnerungen, Stunde erstellen, gespeicherte Stunden und alle Erinnerungen. */
+/** Freitags-Karte: am Freitag zeigt sie, wie der heutige Termin gezählt ist. */
+function freitagKarte() {
+  if (new Date().getDay() !== 5) return null;
+  const heute = heuteIso();
+  const zeile = kontoBerechnen().zeilen.find((z) => z.datum === heute);
+  return el('div', { class: 'karte erinnerung' },
+    el('strong', {}, 'Heute ist Freitag: 14:00 bis 16:00 Uhr'),
+    el('p', { class: 'muted' }, zeile
+      ? `Gezählt: ${zeile.status} · ${zeile.stunden} Std. · ${geld(zeile.stunden * kontoEinstellungen().satz)}`
+      : 'Noch nicht gezählt. Prüfe das Startdatum im Konto.'),
+    el('button', { class: 'btn btn-sekundaer', onclick() { aktiverTab = 'konto'; render(); } }, 'Zum Konto'));
+}
+
+/** Eine kurze Starthilfe, bis man sie ausblendet. */
+function hilfeKarte() {
+  if (Daten.einstellungLesen('hinweisAus')) return null;
+  return el('div', { class: 'karte' },
+    el('span', { class: 'label' }, 'So fängst du an'),
+    el('p', { class: 'muted' }, '1. Stelle eine Stunde zusammen und speichere sie. 2. Lege deine Spieler an und trage Tests ein. 3. Prüfe im Konto das Startdatum. Alles bleibt auf deinem Gerät. Sichere ab und zu über das Zahnrad.'),
+    el('button', {
+      class: 'btn btn-sekundaer',
+      onclick() { Daten.einstellungSpeichern('hinweisAus', true); render(); },
+    }, 'Verstanden, ausblenden'));
+}
+
+/** Der Tab „Stunden“. */
 function ansichtStunden() {
   const heute = heuteIso();
   const alleErinnerungen = Daten.listeAlle('erinnerungen');
   const faellig = alleErinnerungen
     .filter((e) => !e.erledigt && e.datum <= heute)
     .sort((a, b) => a.datum.localeCompare(b.datum));
+  const alleStunden = Daten.listeAlle('stunden');
+  const diesenMonat = alleStunden.filter((s) => (s.datum || '').startsWith(heute.slice(0, 7))).length;
+
+  const liste = el('div', { class: 'stack' });
+  const zeichneListe = (q) => liste.replaceChildren(...gespeicherteStunden(q));
+  zeichneListe('');
 
   return el('div', { class: 'stack' },
+    freitagKarte(),
+    hilfeKarte(),
     faellig.length
       ? el('div', { class: 'karte erinnerung' },
         el('strong', {}, `${faellig.length} Erinnerung${faellig.length > 1 ? 'en' : ''} fällig`),
@@ -533,14 +671,24 @@ function ansichtStunden() {
     trainer.plan ? stundeEntwurfKarte() : trainerFormular(),
 
     el('p', { class: 'sektion-titel' }, 'Gespeicherte Stunden'),
-    ...gespeicherteStunden(),
+    alleStunden.length
+      ? el('p', { class: 'muted' }, `${alleStunden.length} gespeichert · ${diesenMonat} in diesem Monat`)
+      : null,
+    alleStunden.length
+      ? el('input', {
+        class: 'input', type: 'search', placeholder: 'Stunden suchen (Ziel, Datum, Notiz, Name) …',
+        'aria-label': 'Stunden suchen',
+        oninput(e) { zeichneListe(e.target.value); },
+      })
+      : null,
+    liste,
 
     el('p', { class: 'sektion-titel' }, 'Erinnerungen'),
     el('button', { class: 'btn btn-sekundaer', onclick: () => oeffneErinnerung(null) }, '+ Erinnerung eintragen'),
     ...erinnerungsListe(alleErinnerungen));
 }
 
-/** Das Formular für eine neue Stunde: Gruppe, Niveau, Ziel, Dauer. */
+/** Das Formular für eine neue Stunde. */
 function trainerFormular() {
   return el('div', { class: 'stack' },
     el('p', { class: 'muted' }, 'Gib deine Gruppe an. Dann bekommst du eine passende Trainingsstunde.'),
@@ -567,14 +715,11 @@ function stundeEntwurfKarte() {
       el('button', { class: 'btn btn-sekundaer', onclick: erstelleNeueStunde }, 'Neue Stunde (andere Übungen)'),
       el('button', {
         class: 'btn btn-sekundaer',
-        onclick: () => oeffneStundeEditor(trainer.plan, {
-          neu: true,
-          nachSpeichern: () => { trainer.plan = null; },
-        }),
+        onclick: () => oeffneStundeEditor(trainer.plan, { neu: true, nachSpeichern: () => { trainer.plan = null; } }),
       }, 'Bearbeiten (Übungen, Minuten, Text)')));
 }
 
-/** Speichert die Entwurf-Stunde direkt, ohne Bearbeiten. */
+/** Speichert die Entwurf-Stunde direkt. */
 function stundeSpeichern(plan) {
   if (versuche(() => Daten.listeSpeichern('stunden', { ...kopie(plan), datum: heuteIso() }))) {
     trainer.plan = null;
@@ -583,10 +728,18 @@ function stundeSpeichern(plan) {
   }
 }
 
-/** Die gespeicherten Stunden als antippbare Karten. Zeigt auch, wer zuletzt übernommen hat. */
-function gespeicherteStunden() {
-  const liste = Daten.listeAlle('stunden');
-  if (!liste.length) return [hinweis('Noch keine gespeicherte Stunde.')];
+/** Die gespeicherten Stunden, gefiltert nach dem Suchtext. */
+function gespeicherteStunden(suche = '') {
+  const q = suche.trim().toLowerCase();
+  const liste = Daten.listeAlle('stunden').filter((s) => {
+    if (!q) return true;
+    const text = [datumDe(s.datum), s.ziel, s.niveau, s.notizen || '',
+      ...(s.uebergaben || []).map((u) => u.name)].join(' ').toLowerCase();
+    return text.includes(q);
+  });
+  if (!liste.length) {
+    return [hinweis(q ? 'Keine Stunde gefunden.' : 'Noch keine gespeicherte Stunde.')];
+  }
   return liste.map((s) => {
     const letzte = (s.uebergaben || [])[0];
     return el('button', { class: 'karte', onclick: () => oeffneStundeEditor(s, { neu: false }) },
@@ -597,9 +750,8 @@ function gespeicherteStunden() {
 }
 
 /**
- * Der Editor für eine Stunde: alles ist änderbar (Datum, Gruppe, Niveau, Ziel, Dauer,
- * Blöcke mit Titel, Minuten und Text, Übungen tauschen, Notizen und Übergaben).
- * vorlage: die Stunde (gespeichert oder neu). neu: true, wenn sie noch nicht gespeichert ist.
+ * Der Editor für eine Stunde: alles ist änderbar. Vorlage: gespeicherte oder neue Stunde.
+ * neu: true, wenn sie noch nicht gespeichert ist.
  */
 function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {}) {
   const s = kopie(vorlage);
@@ -616,9 +768,9 @@ function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {})
 
   const zeichne = () => box.replaceChildren(...bauEditor());
 
-  /** Baut den Inhalt des Editors aus dem aktuellen Stand von s neu. */
   function bauEditor() {
     const summe = s.bloecke.reduce((a, b) => a + (Number(b.minuten) || 0), 0);
+    const passt = summe === Number(s.dauer);
     return [
       feld('Datum', el('input', {
         class: 'input', type: 'date', value: s.datum,
@@ -633,8 +785,9 @@ function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {})
       el('span', { class: 'label' }, 'Ziel'),
       auswahl(ZIELE.map((z) => ({ wert: z, label: z })), s.ziel, (w) => { s.ziel = w; }),
       el('span', { class: 'label' }, 'Dauer'),
-      auswahl(DAUERN.map((d) => ({ wert: d, label: `${d} Min` })), s.dauer, (w) => { s.dauer = w; }),
-      el('p', { class: 'muted' }, `Blöcke zusammen: ${summe} von ${s.dauer} Minuten${summe !== s.dauer ? ' (bitte anpassen)' : ''}`),
+      auswahl(DAUERN.map((d) => ({ wert: d, label: `${d} Min` })), s.dauer, (w) => { s.dauer = w; zeichne(); }),
+      el('p', { class: passt ? 'muted' : 'fehler' },
+        `Blöcke zusammen: ${summe} von ${s.dauer} Minuten${passt ? ' ✓' : ' (bitte anpassen)'}`),
 
       el('p', { class: 'sektion-titel' }, 'Blöcke'),
       ...s.bloecke.map((b, i) => blockKarte(b, i)),
@@ -660,11 +813,21 @@ function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {})
 
       fehler,
       el('button', { class: 'btn btn-primaer', onclick: speichern }, neu ? 'Stunde speichern' : 'Änderungen speichern'),
+      !neu ? el('button', {
+        class: 'btn btn-sekundaer',
+        onclick() {
+          const kopieNeu = kopie(s);
+          delete kopieNeu.id;
+          kopieNeu.datum = heuteIso();
+          kopieNeu.uebergaben = [];
+          oeffneStundeEditor(kopieNeu, { neu: true });
+        },
+      }, 'Als neue Stunde kopieren (Vorlage)') : null,
       !neu ? el('button', { class: 'btn btn-gefahr', onclick: () => stundeLoeschenMitFrage(s) }, 'Stunde löschen') : null,
     ];
   }
 
-  /** Ein Block mit Titel, Minuten, Text und Knöpfen für Übung tauschen und entfernen. */
+  /** Ein Block mit Titel, Minuten, Text und Knöpfen. */
   function blockKarte(b, i) {
     return el('div', { class: 'karte' },
       feld('Titel', el('input', {
@@ -694,16 +857,16 @@ function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {})
   function uebungTauschen(b) {
     const genutzt = s.bloecke.map((x) => x.uebungId).filter(Boolean);
     const niv = NIVEAUE.indexOf(s.niveau);
-    const kandidaten = passendeUebungen(s.ziel, niv).filter((u) => !genutzt.includes(u.id));
+    const kandidaten = nachAlter(passendeUebungen(s.ziel, niv)).filter((u) => !genutzt.includes(u.id));
     if (!kandidaten.length) { zeigeToast('Keine andere passende Übung vorhanden.'); return; }
-    const neue = mischen(kandidaten)[0];
+    const neue = kandidaten[0];
     const nummer = s.bloecke.filter((x) => x.uebungId).indexOf(b) + 1;
     b.uebungId = neue.id;
     b.titel = `Übung ${nummer}: ${neue.name}`;
     b.text = neue.text;
   }
 
-  /** Das kleine Formular, um eine Übergabe (Vertretung) einzutragen. */
+  /** Das Formular für eine Übergabe (Vertretung). */
   function uebergabeFormular() {
     return el('div', { class: 'karte' },
       el('span', { class: 'label' }, 'Neue Übergabe'),
@@ -752,12 +915,7 @@ function oeffneStundeEditor(vorlage, { neu = false, nachSpeichern = null } = {})
 
 /** Fragt nach, bevor eine gespeicherte Stunde gelöscht wird. */
 async function stundeLoeschenMitFrage(s) {
-  const ja = await fragen({
-    titel: 'Stunde löschen?',
-    text: 'Die gespeicherte Trainingsstunde wird gelöscht.',
-    ok: 'Löschen',
-    gefahr: true,
-  });
+  const ja = await fragen({ titel: 'Stunde löschen?', text: 'Die gespeicherte Trainingsstunde wird gelöscht.', ok: 'Löschen', gefahr: true });
   if (!ja) return;
   if (versuche(() => Daten.listeLoeschen('stunden', s.id))) {
     schliesseSheet();
@@ -766,7 +924,7 @@ async function stundeLoeschenMitFrage(s) {
   }
 }
 
-/** Die Liste der Erinnerungen: offene zuerst, erledigte darunter. */
+/** Erinnerungen: offene zuerst, erledigte darunter. */
 function erinnerungsListe(alle) {
   if (!alle.length) return [hinweis('Keine Erinnerungen. Trage zum Beispiel ein, wann du eine Stunde nachbereiten willst.')];
   const offen = alle.filter((e) => !e.erledigt).sort((a, b) => a.datum.localeCompare(b.datum));
@@ -827,13 +985,12 @@ async function erinnerungLoeschenMitFrage(e) {
 // 5. TAB „SAISON“
 // ==========================================================================
 
-/** Erzeugt die Wochen eines Saisonplans aus dem Formular. Jede 4. Woche ist eine leichte Woche. */
+/** Erzeugt die Wochen eines Saisonplans. Jede 4. Woche ist eine leichte Woche. */
 function saisonWochenErstellen(f) {
   const variante = SAISON_VARIANTEN.find((v) => v.id === f.variante) || SAISON_VARIANTEN[0];
   const n = f.wochen;
   const wochen = [];
   for (let i = 0; i < n; i++) {
-    // In welcher Phase liegt diese Woche? (Mitte der Woche gegen die Anteile prüfen)
     const mitte = (i + 0.5) / n;
     let acc = 0;
     let phase = variante.phasen[variante.phasen.length - 1];
@@ -856,12 +1013,12 @@ function saisonWochenErstellen(f) {
   return wochen;
 }
 
-/** Name einer Variante (aus der Liste oben). */
+/** Name einer Variante. */
 function variantenName(id) {
   return (SAISON_VARIANTEN.find((v) => v.id === id) || SAISON_VARIANTEN[0]).name;
 }
 
-/** Der Tab „Saison“: alle Pläne, oder der offene Plan mit seinen Wochen. */
+/** Der Tab „Saison“: alle Pläne oder der offene Plan. */
 function ansichtSaison() {
   const plaene = Daten.listeAlle('saisonplaene');
   const plan = saisonAuswahl ? plaene.find((p) => p.id === saisonAuswahl) : null;
@@ -870,17 +1027,16 @@ function ansichtSaison() {
 
   return el('div', { class: 'stack' },
     el('p', { class: 'muted' }, 'Ein Saisonplan verteilt die Ziele über viele Wochen. Jede Woche kannst du als Trainingsstunde übernehmen und anpassen.'),
-    ...plaene.map((p) => el('button', {
-      class: 'karte',
-      onclick() { saisonAuswahl = p.id; render(); },
-    },
-      el('strong', { class: 'gegner-name' }, p.name),
-      el('span', { class: 'muted' }, `${p.wochen.length} Wochen · ${variantenName(p.variante)} · Start ${datumDe(p.datum)}`))),
+    ...plaene.map((p) => {
+      const erledigt = p.wochen.filter((w) => w.erledigt).length;
+      return el('button', { class: 'karte', onclick() { saisonAuswahl = p.id; render(); } },
+        el('strong', { class: 'gegner-name' }, p.name),
+        el('span', { class: 'muted' }, `${p.wochen.length} Wochen · ${variantenName(p.variante)} · Start ${datumDe(p.datum)}`),
+        balken(erledigt, p.wochen.length, 'var(--akzent)'),
+        el('span', { class: 'muted' }, `${erledigt} von ${p.wochen.length} Wochen erledigt`));
+    }),
     plaene.length && !saisonFormOffen
-      ? el('button', {
-        class: 'btn btn-primaer',
-        onclick() { saisonFormOffen = true; render(); },
-      }, '+ Neuer Saisonplan')
+      ? el('button', { class: 'btn btn-primaer', onclick() { saisonFormOffen = true; render(); } }, '+ Neuer Saisonplan')
       : null,
     (!plaene.length || saisonFormOffen) ? saisonFormular(plaene.length > 0) : null);
 }
@@ -913,7 +1069,7 @@ function saisonFormular(mitAbbrechen) {
       oninput(e) { f.start = e.target.value; },
     })),
     el('span', { class: 'label' }, 'Anzahl Wochen'),
-    auswahl(GRUPPEN_WOCHEN.map((w) => ({ wert: w, label: `${w} Wochen` })), f.wochen, (w) => { f.wochen = w; }),
+    auswahl(WOCHEN_OPTIONEN.map((w) => ({ wert: w, label: `${w} Wochen` })), f.wochen, (w) => { f.wochen = w; }),
     el('span', { class: 'label' }, 'Variante'),
     auswahl(SAISON_VARIANTEN.map((v) => ({ wert: v.id, label: v.name })), f.variante, (w) => {
       f.variante = w;
@@ -949,32 +1105,34 @@ function saisonFormular(mitAbbrechen) {
         }
       },
     }, 'Saisonplan erstellen'),
-    mitAbbrechen ? el('button', {
-      class: 'btn btn-text',
-      onclick() { saisonFormOffen = false; render(); },
-    }, 'Abbrechen') : null);
+    mitAbbrechen ? el('button', { class: 'btn btn-text', onclick() { saisonFormOffen = false; render(); } }, 'Abbrechen') : null);
 }
 
-/** Ein offener Saisonplan: Kopf, Wochen, und Knöpfe zum Ändern. */
+/** Ein offener Saisonplan: Fortschritt, Wochen und Knöpfe. */
 function saisonPlanAnsicht(plan) {
   const erledigt = plan.wochen.filter((w) => w.erledigt).length;
+  const naechste = plan.wochen.find((w) => !w.erledigt);
   return el('div', { class: 'stack' },
     el('button', { class: 'btn btn-text', onclick() { saisonAuswahl = null; render(); } }, '← Alle Saisonpläne'),
     el('div', { class: 'bilanz-karte' },
       el('span', { class: 'label' }, plan.name),
       el('span', { class: 'bilanz-zahl' }, `${erledigt} / ${plan.wochen.length}`),
+      balken(erledigt, plan.wochen.length),
       el('span', { class: 'muted' }, `erledigte Wochen · ${variantenName(plan.variante)} · ${plan.gruppe} Spieler · ${plan.niveau}`)),
+    naechste
+      ? el('p', { class: 'muted' }, `Als Nächstes: Woche ${naechste.nr} (${datumDe(naechste.datum)}) · ${naechste.ziel}`)
+      : el('p', { class: 'muted' }, 'Alle Wochen sind erledigt. Stark!'),
     el('div', { class: 'stack' },
       el('button', { class: 'btn btn-sekundaer', onclick: () => oeffneSaisonEinstellungen(plan) }, 'Plan bearbeiten (Name, Gruppe, Niveau)'),
       el('button', { class: 'btn btn-sekundaer', onclick: () => wocheHinzufuegen(plan) }, '+ Woche hinzufügen')),
     el('p', { class: 'sektion-titel' }, 'Wochen'),
-    ...plan.wochen.map((w) => wochenKarte(plan, w)),
+    ...plan.wochen.map((w) => wochenKarte(plan, w, naechste && naechste.id === w.id)),
     el('button', { class: 'btn btn-gefahr', onclick: () => saisonLoeschenMitFrage(plan) }, 'Saisonplan löschen'));
 }
 
-/** Eine Woche im Plan: Datum, Phase, Ziel, Dauer und zwei Knöpfe. */
-function wochenKarte(plan, w) {
-  return el('div', { class: 'karte' },
+/** Eine Woche im Plan. hervor: true für die nächste offene Woche. */
+function wochenKarte(plan, w, hervor = false) {
+  return el('div', { class: 'karte', style: hervor ? 'border:2px solid var(--akzent)' : null },
     el('div', { class: 'kopfzeile' },
       el('strong', {}, `Woche ${w.nr} · ${datumDe(w.datum)}`),
       w.erledigt ? el('span', { class: 'badge sieg' }, 'erledigt') : null),
@@ -985,7 +1143,7 @@ function wochenKarte(plan, w) {
       el('button', { class: 'btn btn-primaer', onclick: () => wocheAlsStunde(plan, w) }, 'Als Stunde')));
 }
 
-/** Eine Woche bearbeiten: Datum, Phase, Ziel, Dauer, Notiz, erledigt. */
+/** Eine Woche bearbeiten. */
 function oeffneWoche(plan, w) {
   const f = kopie(w);
   const inhalt = el('div', { class: 'stack' },
@@ -1010,14 +1168,11 @@ function oeffneWoche(plan, w) {
         }
       },
     }, 'Speichern'),
-    el('button', {
-      class: 'btn btn-gefahr',
-      onclick: () => wocheLoeschenMitFrage(plan, w),
-    }, 'Woche löschen'));
+    el('button', { class: 'btn btn-gefahr', onclick: () => wocheLoeschenMitFrage(plan, w) }, 'Woche löschen'));
   oeffneSheet(`Woche ${w.nr}`, inhalt, null);
 }
 
-/** Löscht eine Woche aus dem Plan (nach Nachfrage). Die Nummern werden neu vergeben. */
+/** Löscht eine Woche. Die Nummern werden neu vergeben. */
 async function wocheLoeschenMitFrage(plan, w) {
   const ja = await fragen({ titel: 'Woche löschen?', text: `Woche ${w.nr} wird aus dem Plan entfernt.`, ok: 'Löschen', gefahr: true });
   if (!ja) return;
@@ -1029,7 +1184,7 @@ async function wocheLoeschenMitFrage(plan, w) {
   }
 }
 
-/** Hängt eine neue Woche an das Ende des Plans an (eine Woche nach der letzten). */
+/** Hängt eine neue Woche an den Plan an. */
 function wocheHinzufuegen(plan) {
   const letzte = plan.wochen[plan.wochen.length - 1];
   const datum = letzte ? addTage(letzte.datum, 7) : plan.datum;
@@ -1043,7 +1198,7 @@ function wocheHinzufuegen(plan) {
   }
 }
 
-/** Macht aus einer Saisonwoche eine Trainingsstunde und öffnet den Editor zum Anpassen und Speichern. */
+/** Macht aus einer Saisonwoche eine Trainingsstunde und öffnet den Editor. */
 function wocheAlsStunde(plan, w) {
   const entwurf = trainingsplanErstellen({ gruppe: plan.gruppe, niveau: plan.niveau, ziel: w.ziel, dauer: w.dauer });
   oeffneStundeEditor({
@@ -1053,7 +1208,7 @@ function wocheAlsStunde(plan, w) {
   }, { neu: true });
 }
 
-/** Name, Gruppe, Niveau und Dauer eines Plans ändern (die Wochen bleiben). */
+/** Name, Gruppe, Niveau und Dauer eines Plans ändern. */
 function oeffneSaisonEinstellungen(plan) {
   const f = { name: plan.name, gruppe: plan.gruppe, niveau: plan.niveau, dauer: plan.dauer || 60 };
   const inhalt = el('div', { class: 'stack' },
@@ -1081,7 +1236,7 @@ function oeffneSaisonEinstellungen(plan) {
   oeffneSheet('Plan bearbeiten', inhalt, null);
 }
 
-/** Fragt nach, bevor ein ganzer Saisonplan gelöscht wird. */
+/** Löscht einen ganzen Saisonplan. Gespeicherte Stunden bleiben. */
 async function saisonLoeschenMitFrage(plan) {
   const ja = await fragen({
     titel: 'Saisonplan löschen?',
@@ -1101,26 +1256,74 @@ async function saisonLoeschenMitFrage(plan) {
 // 6. TAB „ÜBUNGEN“
 // ==========================================================================
 
-/** Alle Übungen, nach Ziel gefiltert. Antippen öffnet die Übung zum Ändern. */
+/** Schaltet eine Übung als Favorit um. */
+function favoritUmschalten(id) {
+  const liste = favoriten();
+  const neu = liste.includes(id) ? liste.filter((x) => x !== id) : [...liste, id];
+  if (versuche(() => Daten.einstellungSpeichern('favoriten', neu))) render();
+}
+
+/** Eine Übung in der Liste: Name zum Öffnen, Stern für Favorit. */
+function uebungKarte(u, istFavorit) {
+  return el('div', { class: 'karte' },
+    el('div', { class: 'kopfzeile' },
+      el('button', {
+        class: 'text-btn',
+        style: 'text-align:left;padding:0;flex:1;color:var(--text);font-weight:700',
+        onclick: () => oeffneUebung(u),
+      }, u.name),
+      el('button', {
+        class: 'icon-btn',
+        'aria-label': istFavorit ? 'Favorit entfernen' : 'Als Favorit merken',
+        style: `font-size:20px;color:${istFavorit ? 'var(--akzent)' : 'var(--muted)'}`,
+        onclick: () => favoritUmschalten(u.id),
+      }, istFavorit ? '★' : '☆')),
+    el('span', { class: 'muted' }, `${u.ziel} · ${u.min === 0 ? 'Beide Niveaus' : 'Nur Fortgeschritten'}`),
+    el('span', { class: 'muted' }, u.text));
+}
+
+/** Der Tab „Übungen“: Suche, Filter, Favoriten und die Liste. */
 function ansichtUebungen() {
   const alle = uebungenAktiv();
-  const gefiltert = uebungFilter === 'Alle' ? alle : alle.filter((u) => u.ziel === uebungFilter);
+  const fav = favoriten();
+  const zaehler = el('p', { class: 'muted' });
+  const liste = el('div', { class: 'stack' });
+
+  const zeichne = () => {
+    const q = uebungFilter.suche.trim().toLowerCase();
+    const treffer = alle.filter((u) =>
+      (uebungFilter.ziel === 'Alle' || u.ziel === uebungFilter.ziel) &&
+      (uebungFilter.niveau === 'Alle' || (uebungFilter.niveau === 'Beide' ? u.min === 0 : u.min === 1)) &&
+      (!uebungFilter.nurFavoriten || fav.includes(u.id)) &&
+      (!q || `${u.name} ${u.text} ${u.ziel}`.toLowerCase().includes(q)));
+    zaehler.textContent = `${treffer.length} von ${alle.length} Übungen`;
+    liste.replaceChildren(...(treffer.length
+      ? treffer.map((u) => uebungKarte(u, fav.includes(u.id)))
+      : [hinweis('Keine Übung gefunden. Ändere die Filter oder lege eine neue Übung an.')]));
+  };
+
+  zeichne();
 
   return el('div', { class: 'stack' },
-    auswahl(['Alle', ...ZIELE].map((z) => ({ wert: z, label: z })), uebungFilter, (w) => {
-      uebungFilter = w;
-      render();
+    el('input', {
+      class: 'input', type: 'search', placeholder: 'Übung suchen …', 'aria-label': 'Übung suchen',
+      value: uebungFilter.suche,
+      oninput(e) { uebungFilter.suche = e.target.value; zeichne(); },
     }),
+    el('span', { class: 'label' }, 'Ziel'),
+    auswahl(['Alle', ...ZIELE].map((z) => ({ wert: z, label: z })), uebungFilter.ziel, (w) => { uebungFilter.ziel = w; zeichne(); }),
+    el('span', { class: 'label' }, 'Niveau'),
+    auswahl([
+      { wert: 'Alle', label: 'Alle' },
+      { wert: 'Beide', label: 'Beide Niveaus' },
+      { wert: 'Fortgeschritten', label: 'Nur Fortgeschritten' },
+    ], uebungFilter.niveau, (w) => { uebungFilter.niveau = w; zeichne(); }),
+    auswahl([{ wert: true, label: '★ Nur Favoriten' }, { wert: false, label: 'Alle zeigen' }],
+      uebungFilter.nurFavoriten, (w) => { uebungFilter.nurFavoriten = w; zeichne(); }),
+    zaehler,
     el('button', { class: 'btn btn-primaer', onclick: () => oeffneUebung(null) }, '+ Neue Übung'),
-    el('p', { class: 'muted' }, `${gefiltert.length} Übungen`),
-    ...(gefiltert.length
-      ? gefiltert.map((u) => el('button', { class: 'karte', onclick: () => oeffneUebung(u) },
-        el('strong', { class: 'gegner-name' }, u.name),
-        el('span', { class: 'muted' }, `${u.ziel} · ${u.min === 0 ? 'Beide Niveaus' : 'Nur Fortgeschritten'}`),
-        el('span', { class: 'muted' }, u.text)))
-      : [hinweis('Keine Übung für dieses Ziel. Lege eine neue an.')]),
-    el('button', { class: 'btn btn-text', onclick: standardUebungenMitFrage },
-      'Standardübungen wiederherstellen'));
+    liste,
+    el('button', { class: 'btn btn-text', onclick: standardUebungenMitFrage }, 'Standardübungen wiederherstellen'));
 }
 
 /** Formular für eine Übung. u = null bedeutet „neu“. */
@@ -1165,7 +1368,7 @@ function oeffneUebung(u) {
   oeffneSheet(u ? 'Übung bearbeiten' : 'Neue Übung', inhalt, null);
 }
 
-/** Löscht eine Übung aus der Liste (nach Nachfrage). Gespeicherte Stunden behalten ihren Text. */
+/** Löscht eine Übung aus der Liste. Gespeicherte Stunden behalten ihren Text. */
 async function uebungLoeschenMitFrage(u) {
   const ja = await fragen({ titel: 'Übung löschen?', text: `„${u.name}“ wird aus der Übungsliste entfernt.`, ok: 'Löschen', gefahr: true });
   if (!ja) return;
@@ -1177,7 +1380,7 @@ async function uebungLoeschenMitFrage(u) {
   }
 }
 
-/** Setzt die Übungsliste auf die Standardübungen zurück (nach Nachfrage). */
+/** Setzt die Übungsliste auf die Standardübungen zurück. */
 async function standardUebungenMitFrage() {
   const ja = await fragen({
     titel: 'Standardübungen wiederherstellen?',
@@ -1193,186 +1396,8 @@ async function standardUebungenMitFrage() {
 }
 
 // ==========================================================================
-// 7. EINSTELLUNGEN, SICHERUNG UND START
+// 7. TAB „SPIELER“ UND TESTS
 // ==========================================================================
-
-/** Die Einstellungen (Zahnrad): Sichern, Wiederherstellen, Alles löschen. */
-function oeffneEinstellungen() {
-  const inhalt = el('div', { class: 'stack' },
-    el('p', { class: 'sektion-titel' }, 'Daten sichern'),
-    el('p', { class: 'muted' },
-      'Lade regelmäßig eine Sicherung herunter. So geht nichts verloren, auch wenn der Browser seine Daten löscht.'),
-    el('button', { class: 'btn btn-sekundaer', onclick: exportierenDatei }, 'Daten exportieren (Datei speichern)'),
-    el('button', { class: 'btn btn-sekundaer', onclick: importierenStarten }, 'Daten importieren'),
-
-    el('p', { class: 'sektion-titel' }, 'Gefahrenzone'),
-    el('button', { class: 'btn btn-gefahr', onclick: alleDatenLoeschenMitFrage }, 'Alle Daten löschen'));
-
-  oeffneSheet('Einstellungen', inhalt, null);
-}
-
-/** Lädt alle Daten als JSON-Datei herunter. */
-function exportierenDatei() {
-  const blob = new Blob([Daten.exportieren()], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `trainer-sicherung-${heuteIso()}.json`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  Daten.einstellungSpeichern('letzteSicherung', new Date().toISOString());
-  zeigeToast('Sicherung wird heruntergeladen');
-  render();
-}
-
-/** Erinnerung an die Sicherung: erscheint, wenn die letzte Sicherung 14 Tage oder älter ist. */
-function sicherungKarte() {
-  const jetzt = Date.now();
-  const aufgeschoben = Daten.einstellungLesen('erinnerungAufschieben');
-  if (aufgeschoben && new Date(aufgeschoben).getTime() > jetzt) return null;
-
-  const hatDaten = Daten.listeAlle('stunden').length > 0 || Daten.listeAlle('saisonplaene').length > 0
-    || Daten.listeAlle('erinnerungen').length > 0 || Daten.uebungenLesen() !== null;
-  if (!hatDaten) return null;
-
-  const letzte = Daten.einstellungLesen('letzteSicherung');
-  const tage = letzte ? Math.floor((jetzt - new Date(letzte).getTime()) / 86400000) : null;
-  if (tage !== null && tage < 14) return null;
-
-  return el('div', { class: 'karte erinnerung' },
-    el('strong', {}, 'Zeit für eine Sicherung'),
-    el('p', { class: 'muted' }, tage === null
-      ? 'Du hast noch nie eine Sicherung gemacht.'
-      : `Deine letzte Sicherung ist ${tage} Tage her.`),
-    el('p', { class: 'muted' }, 'Auf dem iPhone gehen die Daten verloren, wenn du die App löschst. Eine Sicherung schützt dich davor.'),
-    el('div', { class: 'knopf-reihe' },
-      el('button', { class: 'btn btn-primaer', onclick: exportierenDatei }, 'Jetzt sichern'),
-      el('button', {
-        class: 'btn btn-sekundaer',
-        onclick() {
-          Daten.einstellungSpeichern('erinnerungAufschieben', new Date(Date.now() + 3 * 86400000).toISOString());
-          render();
-        },
-      }, 'In 3 Tagen')));
-}
-
-/** Öffnet die Dateiauswahl, liest eine Sicherungsdatei und ersetzt die Daten (nach Nachfrage). */
-function importierenStarten() {
-  const datei = document.createElement('input');
-  datei.type = 'file';
-  datei.accept = '.json,application/json';
-  document.body.append(datei);
-
-  datei.onchange = async () => {
-    const auswahlDatei = datei.files[0];
-    datei.remove();
-    if (!auswahlDatei) return;
-
-    let text;
-    try {
-      text = await auswahlDatei.text();
-    } catch {
-      zeigeToast('Die Datei konnte nicht gelesen werden.');
-      return;
-    }
-
-    const ja = await fragen({
-      titel: 'Daten importieren?',
-      text: 'Alle aktuellen Daten werden durch den Inhalt der Datei ersetzt.',
-      ok: 'Importieren',
-      gefahr: true,
-    });
-    if (!ja) return;
-
-    if (versuche(() => Daten.importieren(text))) {
-      trainer.plan = null;
-      saisonAuswahl = null;
-      saisonForm = null;
-      saisonFormOffen = false;
-      schliesseSheet();
-      zeigeToast('Daten importiert');
-      render();
-    }
-  };
-  datei.click();
-}
-
-/** Löscht alle Daten – nur nach zwei Bestätigungen. */
-async function alleDatenLoeschenMitFrage() {
-  const erste = await fragen({
-    titel: 'Alle Daten löschen?',
-    text: 'Alle Stunden, Erinnerungen, Saisonpläne und Übungen werden entfernt.',
-    ok: 'Weiter',
-    gefahr: true,
-  });
-  if (!erste) return;
-
-  const zweite = await fragen({
-    titel: 'Wirklich ganz sicher?',
-    text: 'Das lässt sich nicht rückgängig machen. Exportiere vorher lieber eine Sicherung.',
-    ok: 'Ja, alles löschen',
-    gefahr: true,
-  });
-  if (!zweite) return;
-
-  if (versuche(() => Daten.alleLoeschen())) {
-    trainer.plan = null;
-    saisonAuswahl = null;
-    saisonForm = null;
-    saisonFormOffen = false;
-    schliesseSheet();
-    zeigeToast('Alle Daten gelöscht');
-    render();
-  }
-}
-
-// ==========================================================================
-// 8. ABWECHSLUNG, SPIELER, TESTS UND KONTO
-// ==========================================================================
-
-/** Übungen, die lange nicht benutzt wurden, kommen zuerst (bei Gleichstand zufällig). */
-function nachAlter(liste) {
-  const zuletzt = {};
-  for (const s of Daten.listeAlle('stunden')) {
-    for (const b of s.bloecke || []) {
-      if (b.uebungId && (!zuletzt[b.uebungId] || s.datum > zuletzt[b.uebungId])) zuletzt[b.uebungId] = s.datum;
-    }
-  }
-  return mischen(liste).sort((a, b) => (zuletzt[a.id] || '').localeCompare(zuletzt[b.id] || ''));
-}
-
-// Basis-Tests. min = 0: für Anfänger und Fortgeschritten. min = 1: nur Fortgeschritten.
-// hoeher = true: mehr ist besser. hoeher = false: weniger ist besser (z. B. Sekunden).
-const TESTS = [
-  { id: 'aufschlag-a', ziel: 'Aufschlag', min: 0, name: '10 Aufschläge', einheit: 'Treffer von 10', hoeher: true,
-    anleitung: 'Du schlägst 10 Aufschläge. Zählt jeder Aufschlag, der im Feld landet.' },
-  { id: 'aufschlag-f', ziel: 'Aufschlag', min: 1, name: 'Aufschlag mit Ziel', einheit: 'Punkte von 20', hoeher: true,
-    anleitung: '20 Aufschläge. Jeder Treffer in die Zielzone ist 1 Punkt.' },
-  { id: 'grundlinie-a', ziel: 'Grundlinie', min: 0, name: 'Ballwechsel ohne Fehler', einheit: 'Schläge ohne Fehler', hoeher: true,
-    anleitung: 'Mit dem Partner Bälle an der Grundlinie wechseln. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
-  { id: 'grundlinie-f', ziel: 'Grundlinie', min: 1, name: 'Cross-Treffer', einheit: 'Treffer von 10', hoeher: true,
-    anleitung: '10 Cross-Bälle in ein Zielfeld. Jeder Ball im Feld zählt.' },
-  { id: 'netzspiel-a', ziel: 'Netzspiel', min: 0, name: 'Volley-Wand 30 Sekunden', einheit: 'Volleys ohne Fehler', hoeher: true,
-    anleitung: '30 Sekunden Volleys an die Wand oder zum Partner. Zählt, wie viele ohne Fehler kommen.' },
-  { id: 'netzspiel-f', ziel: 'Netzspiel', min: 1, name: 'Volleys in Folge', einheit: 'Volleys in Folge', hoeher: true,
-    anleitung: 'Volley-Ballwechsel mit dem Partner am Netz. Zählt die längste Serie ohne Fehler.' },
-  { id: 'return-a', ziel: 'Return', min: 0, name: '10 Returns ins Feld', einheit: 'Treffer von 10', hoeher: true,
-    anleitung: 'Der Trainer schlägt 10 Aufschläge. Zählt jeder Return, der im Feld landet.' },
-  { id: 'return-f', ziel: 'Return', min: 1, name: 'Returns gegen zweiten Aufschlag', einheit: 'Treffer von 10', hoeher: true,
-    anleitung: '10 zweite Aufschläge. Zählt jeder Return, der im Feld landet.' },
-  { id: 'kondition-a', ziel: 'Kondition', min: 0, name: '5 Sprints à 20 Meter', einheit: 'Sekunden gesamt', hoeher: false,
-    anleitung: '5 Sprints über 20 Meter mit kurzer Pause. Gestoppt wird die Gesamtzeit. Weniger ist besser.' },
-  { id: 'kondition-f', ziel: 'Kondition', min: 1, name: 'Dauer-Rallye', einheit: 'Schläge ohne Fehler', hoeher: true,
-    anleitung: 'Ein Ballwechsel ohne Pause. Zählt, wie viele Schläge du ohne Fehler schaffst.' },
-  { id: 'mental-a', ziel: 'Mental', min: 0, name: 'Punkt-Routine', einheit: 'Selbsteinschätzung von 1 bis 10', hoeher: true,
-    anleitung: 'Spiel 10 Punkte mit der Punkt-Routine. Bewerte dich selbst von 1 bis 10: wie gut hast du die Routine eingehalten?' },
-  { id: 'mental-f', ziel: 'Mental', min: 1, name: 'Satzball-Spiel', einheit: 'Punkte von 10', hoeher: true,
-    anleitung: 'Spiel bis 10 Punkte gegen einen Partner. Zählt deine Punkte.' },
-];
-
-const TEST_PHASEN = ['Saisonstart', 'Zwischentest', 'Saisonende'];
 
 /** Die Tests, die für ein Niveau gelten. Fortgeschrittene machen alle Tests. */
 function testsFuer(niveau) {
@@ -1380,27 +1405,58 @@ function testsFuer(niveau) {
   return TESTS.filter((t) => t.min <= niv);
 }
 
-/** Eine Zahl aus Text (Komma oder Punkt). */
-function zahlWert(text) {
-  return Number(String(text).trim().replace(',', '.'));
+/** Der Gruppen-Überblick: Durchschnitt aller Spieler am Saisonstart und am Saisonende. */
+function gruppenUeberblick() {
+  const ergebnisse = Daten.listeAlle('testergebnisse');
+  const mittel = (liste) => (liste.length ? liste.reduce((a, b) => a + b, 0) / liste.length : null);
+  const zeilen = TESTS.map((t) => {
+    const start = mittel(ergebnisse.filter((e) => e.testId === t.id && e.phase === 'Saisonstart').map((e) => e.wert));
+    const ende = mittel(ergebnisse.filter((e) => e.testId === t.id && e.phase === 'Saisonende').map((e) => e.wert));
+    return start === null && ende === null ? null : { t, start, ende };
+  }).filter(Boolean);
+  if (!zeilen.length) return null;
+
+  return el('div', { class: 'karte' },
+    el('span', { class: 'label' }, 'Gruppe im Überblick'),
+    el('p', { class: 'muted' }, 'Durchschnitt aller Spieler: grau = Saisonstart, grün = Saisonende.'),
+    ...zeilen.map(({ t, start, ende }) => {
+      const max = Math.max(start || 0, ende || 0, 1);
+      const anzeige = (x) => (x === null ? '–' : zahlDe(x));
+      return el('div', { class: 'zeile' },
+        el('strong', {}, t.name),
+        el('span', { class: 'muted' }, `Start ${anzeige(start)} · Ende ${anzeige(ende)}`),
+        balken(start || 0, max, 'var(--muted)'),
+        balken(ende || 0, max, 'var(--akzent)'));
+    }));
 }
 
-/** Geld im deutschen Format, z. B. 30,00 €. */
-function geld(betrag) {
-  return `${Number(betrag || 0).toFixed(2).replace('.', ',')} €`;
-}
-
-/** Der Tab „Spieler“: alle Spieler, alphabetisch. */
+/** Der Tab „Spieler“: Suche, Gruppen-Überblick und die Liste. */
 function ansichtSpieler() {
-  const liste = Daten.listeAlle('spieler').sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const alle = Daten.listeAlle('spieler').sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const liste = el('div', { class: 'stack' });
+  const zeichne = (q) => {
+    const s = q.trim().toLowerCase();
+    const treffer = alle.filter((x) => !s || `${x.name} ${x.niveau} ${x.notiz || ''}`.toLowerCase().includes(s));
+    liste.replaceChildren(...(treffer.length
+      ? treffer.map((x) => el('button', { class: 'karte', onclick: () => oeffneSpielerDetail(x.id) },
+        el('strong', { class: 'gegner-name' }, x.name),
+        el('span', { class: 'muted' }, `${x.niveau}${x.notiz ? ' · ' + x.notiz : ''}`)))
+      : [hinweis(alle.length ? 'Kein Spieler gefunden.' : 'Noch keine Spieler.')]));
+  };
+  zeichne(spielerSuche);
+
   return el('div', { class: 'stack' },
     el('p', { class: 'muted' }, 'Trage deine Spieler ein. Mit den Tests am Saisonstart und am Saisonende siehst du, wie sich jeder verbessert hat.'),
     el('button', { class: 'btn btn-primaer', onclick: () => oeffneSpieler(null) }, '+ Spieler'),
-    ...(liste.length
-      ? liste.map((s) => el('button', { class: 'karte', onclick: () => oeffneSpielerDetail(s.id) },
-        el('strong', { class: 'gegner-name' }, s.name),
-        el('span', { class: 'muted' }, `${s.niveau}${s.notiz ? ' · ' + s.notiz : ''}`)))
-      : [hinweis('Noch keine Spieler.')]));
+    alle.length
+      ? el('input', {
+        class: 'input', type: 'search', placeholder: 'Spieler suchen …', 'aria-label': 'Spieler suchen',
+        value: spielerSuche,
+        oninput(e) { spielerSuche = e.target.value; zeichne(e.target.value); },
+      })
+      : null,
+    gruppenUeberblick(),
+    liste);
 }
 
 /** Formular für einen Spieler. s = null bedeutet „neu“. */
@@ -1429,7 +1485,7 @@ function oeffneSpieler(s) {
   oeffneSheet(s ? 'Spieler bearbeiten' : 'Neuer Spieler', inhalt, null);
 }
 
-/** Die Ansicht eines Spielers: alle Tests seines Niveaus mit Verlauf und Veränderung. */
+/** Die Ansicht eines Spielers: jeder Test mit Balken, Verlauf und Veränderung. */
 function oeffneSpielerDetail(id) {
   const s = Daten.listePerId('spieler', id);
   if (!s) return;
@@ -1445,15 +1501,18 @@ function oeffneSpielerDetail(id) {
     const letzte = liste[liste.length - 1];
     const diff = Math.round((letzte.wert - erste.wert) * 10) / 10;
     const besser = t.hoeher ? diff > 0 : diff < 0;
+    const max = Math.max(...liste.map((e) => e.wert), 1);
     const veraenderung = liste.length > 1
-      ? el('p', {}, `Veränderung: ${diff > 0 ? '+' : ''}${String(diff).replace('.', ',')}${diff === 0 ? ' (gleich)' : besser ? ' (besser)' : ' (schlechter)'}`)
+      ? el('p', {}, `Veränderung: ${diff > 0 ? '+' : ''}${zahlDe(diff)}${diff === 0 ? ' (gleich)' : besser ? ' (besser)' : ' (schlechter)'}`)
       : null;
     return el('div', { class: 'karte' }, kopf,
       el('span', { class: 'muted' }, t.einheit),
       ...liste.map((e) => el('div', { class: 'zeile' },
-        el('span', { class: 'label' }, `${datumDe(e.datum)} · ${e.phase}`),
-        el('p', {}, String(e.wert).replace('.', ',')),
-        el('button', { class: 'btn btn-text', onclick: () => oeffneTestergebnis(s, e) }, 'Ändern'))),
+        el('div', { class: 'kopfzeile' },
+          el('span', { class: 'label' }, `${datumDe(e.datum)} · ${e.phase}`),
+          el('button', { class: 'btn btn-text', onclick: () => oeffneTestergebnis(s, e) }, 'Ändern')),
+        el('p', {}, zahlDe(e.wert)),
+        balken(e.wert, max))),
       veraenderung);
   });
 
@@ -1473,7 +1532,7 @@ function oeffneTestergebnis(s, e) {
     testId: e?.testId || tests[0].id,
     phase: e?.phase || 'Saisonstart',
     datum: e?.datum || heuteIso(),
-    wert: e ? String(e.wert).replace('.', ',') : '',
+    wert: e ? zahlDe(e.wert) : '',
   };
   const beschreibung = el('p', { class: 'muted' });
   const zeigeBeschreibung = () => {
@@ -1509,13 +1568,13 @@ function oeffneTestergebnis(s, e) {
         }
       },
     }, 'Speichern'),
-    e ? el('button', { class: 'btn btn-gefahr', onclick: () => testergebnisLoeschenMitFrage(s, e) }, 'Ergebnis löschen') : null);
+    e ? el('button', { class: 'btn btn-gefahr', onclick: () => testergebnisLoeschenMitFrage(e) }, 'Ergebnis löschen') : null);
 
   oeffneSheet(`Test: ${s.name}`, inhalt, null);
 }
 
-/** Löscht ein Testergebnis (nach Nachfrage). */
-async function testergebnisLoeschenMitFrage(s, e) {
+/** Löscht ein Testergebnis. */
+async function testergebnisLoeschenMitFrage(e) {
   const ja = await fragen({ titel: 'Ergebnis löschen?', text: 'Dieses Testergebnis wird entfernt.', ok: 'Löschen', gefahr: true });
   if (!ja) return;
   if (versuche(() => Daten.listeLoeschen('testergebnisse', e.id))) {
@@ -1525,7 +1584,7 @@ async function testergebnisLoeschenMitFrage(s, e) {
   }
 }
 
-/** Löscht einen Spieler samt allen Testergebnissen (nach Nachfrage). */
+/** Löscht einen Spieler samt allen Testergebnissen. */
 async function spielerLoeschenMitFrage(s) {
   const ja = await fragen({
     titel: 'Spieler löschen?',
@@ -1546,16 +1605,11 @@ async function spielerLoeschenMitFrage(s) {
   }
 }
 
-// ---------- Konto: Freitage 14 bis 16 Uhr ----------
+// ==========================================================================
+// 8. TAB „KONTO“ (Freitage, Abrechnung)
+// ==========================================================================
 
-const KONTO_ARTEN = {
-  uebernommen: 'Übernommen (ich habe gehalten)',
-  vertreten: 'Abgegeben (andere hat gehalten)',
-  ausgefallen: 'Ausgefallen (keine Stunde)',
-  zahlung: 'Zahlung erhalten',
-};
-
-/** Die Einstellungen des Kontos: Satz je Stunde, Dauer in Stunden, Startdatum. */
+/** Die Einstellungen des Kontos. */
 function kontoEinstellungen() {
   return {
     satz: Number(Daten.einstellungLesen('kontoSatz')) || 15,
@@ -1566,8 +1620,8 @@ function kontoEinstellungen() {
 
 /**
  * Rechnet alle Freitage ab dem Startdatum durch. Ein Freitag zählt automatisch als gegeben,
- * außer es gibt einen Eintrag dafür: „übernommen“ (mit eigener Dauer), „abgegeben“ oder „ausgefallen“.
- * Übernommene Stunden an anderen Tagen zählen zusätzlich. Zahlungen werden abgezogen.
+ * außer es gibt einen Eintrag dafür. Übernommene Stunden an anderen Tagen zählen zusätzlich.
+ * Zahlungen werden abgezogen.
  */
 function kontoBerechnen() {
   const { satz, dauer, start } = kontoEinstellungen();
@@ -1578,7 +1632,7 @@ function kontoBerechnen() {
   if (start && start <= heute) {
     const ende = new Date(heute + 'T00:00:00');
     for (let d = new Date(start + 'T00:00:00'); d <= ende; d.setDate(d.getDate() + 1)) {
-      if (d.getDay() !== 5) continue;                       // nur Freitage
+      if (d.getDay() !== 5) continue;
       const iso = isoVon(d);
       const am = eintraege.filter((e) => e.datum === iso);
       const aus = am.find((x) => x.art === 'ausgefallen' || x.art === 'vertreten');
@@ -1593,7 +1647,6 @@ function kontoBerechnen() {
     }
   }
 
-  // Übernommene Stunden an Tagen, die kein gezählter Freitag sind
   const freitagsDaten = new Set(zeilen.map((z) => z.datum));
   for (const e of eintraege) {
     if (e.art === 'uebernommen' && !freitagsDaten.has(e.datum)) {
@@ -1610,28 +1663,55 @@ function kontoBerechnen() {
   return { zeilen, stunden, verdient, bezahlt, offen: verdient - bezahlt };
 }
 
-/** Der Tab „Konto“: offener Betrag, alle Freitage und alle Einträge. */
+/** Der Tab „Konto“: offener Betrag, Monate, Freitage und Einträge. */
 function ansichtKonto() {
   if (!Daten.einstellungLesen('kontoStart')) Daten.einstellungSpeichern('kontoStart', heuteIso());
   const k = kontoBerechnen();
   const e = kontoEinstellungen();
   const eintraege = Daten.listeAlle('kontoEintraege');
 
+  // Die Freitage nach Monaten gruppieren
+  const monate = {};
+  for (const z of k.zeilen) {
+    const m = z.datum.slice(0, 7);
+    monate[m] = monate[m] || [];
+    monate[m].push(z);
+  }
+  const monatsListe = Object.keys(monate).sort().reverse().flatMap((m) => {
+    const liste = monate[m];
+    const std = liste.reduce((summe, z) => summe + z.stunden, 0);
+    return [
+      el('div', { class: 'kopfzeile' },
+        el('p', { class: 'sektion-titel' }, monatDe(m)),
+        el('span', { class: 'muted' }, `${std} Std. · ${geld(std * e.satz)}`)),
+      ...liste.map((z) => el('button', { class: 'karte', onclick: () => oeffneKontoEintrag(null, z.datum) },
+        el('strong', { class: 'gegner-name' }, `${datumDe(z.datum)} · ${z.status}`),
+        el('span', { class: 'muted' }, `${z.stunden} Std. · ${geld(z.stunden * e.satz)}`))),
+    ];
+  });
+
+  const naechsterFreitag = (() => {
+    const d = new Date();
+    const diff = (5 - d.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diff);
+    return isoVon(d);
+  })();
+
   return el('div', { class: 'stack' },
     el('div', { class: 'bilanz-karte' },
       el('span', { class: 'label' }, 'Offen (noch nicht bezahlt)'),
       el('span', { class: 'bilanz-zahl' }, geld(k.offen)),
-      el('span', { class: 'muted' }, `verdient ${geld(k.verdient)} · bezahlt ${geld(k.bezahlt)} · ${k.stunden} Std.`)),
+      el('span', { class: 'muted' }, `verdient ${geld(k.verdient)} · bezahlt ${geld(k.bezahlt)} · ${zahlDe(k.stunden)} Std.`)),
     el('p', { class: 'muted' },
-      `Freitags 14:00 bis 16:00 Uhr zählen automatisch als gegeben, solange du nichts einträgst. ${e.dauer} Std. à ${geld(e.satz)} je Stunde. Gezählt ab ${datumDe(e.start)}.`),
-    el('button', { class: 'btn btn-primaer', onclick: () => oeffneKontoEintrag(null, null) }, '+ Eintrag (übernommen, Zahlung …)'),
-    el('button', { class: 'btn btn-sekundaer', onclick: oeffneKontoEinstellungen }, 'Satz, Dauer und Startdatum ändern'),
+      `Freitags 14:00 bis 16:00 Uhr zählen automatisch als gegeben, solange du nichts einträgst. ${zahlDe(e.dauer)} Std. à ${geld(e.satz)} je Stunde. Gezählt ab ${datumDe(e.start)}. Nächster Freitag: ${datumDe(naechsterFreitag)}.`),
+    el('div', { class: 'stack' },
+      el('button', { class: 'btn btn-primaer', onclick: () => oeffneKontoEintrag(null, null) }, '+ Eintrag (übernommen, Zahlung …)'),
+      el('button', { class: 'btn btn-sekundaer', onclick: abrechnungExportieren }, 'Abrechnung als Tabelle (CSV)'),
+      el('button', { class: 'btn btn-sekundaer', onclick: oeffneKontoEinstellungen }, 'Satz, Dauer und Startdatum ändern')),
 
-    el('p', { class: 'sektion-titel' }, 'Stunden'),
+    el('p', { class: 'sektion-titel' }, 'Freitage und Stunden'),
     ...(k.zeilen.length
-      ? k.zeilen.map((z) => el('button', { class: 'karte', onclick: () => oeffneKontoEintrag(null, z.datum) },
-        el('strong', { class: 'gegner-name' }, `${datumDe(z.datum)} · ${z.status}`),
-        el('span', { class: 'muted' }, `${z.stunden} Std. · ${geld(z.stunden * e.satz)}`)))
+      ? monatsListe
       : [hinweis('Noch keine Stunden gezählt. Prüfe das Startdatum unter „Satz, Dauer und Startdatum“.')]),
 
     el('p', { class: 'sektion-titel' }, 'Einträge und Zahlungen'),
@@ -1640,8 +1720,32 @@ function ansichtKonto() {
         el('strong', { class: 'gegner-name' }, `${datumDe(x.datum)} · ${KONTO_ARTEN[x.art] || x.art}`),
         el('span', { class: 'muted' }, x.art === 'zahlung'
           ? geld(x.betrag)
-          : `${x.dauer ? x.dauer + ' Std.' : ''}${x.notiz ? ' · ' + x.notiz : ''}`)))
+          : `${x.dauer ? zahlDe(x.dauer) + ' Std.' : ''}${x.notiz ? ' · ' + x.notiz : ''}`)))
       : [hinweis('Noch keine Einträge.')]));
+}
+
+/** Lädt die Abrechnung als CSV-Datei (Excel-tauglich: Semikolon, deutsche Zahlen). */
+function abrechnungExportieren() {
+  const k = kontoBerechnen();
+  const e = kontoEinstellungen();
+  const betrag = (n) => Number(n).toFixed(2).replace('.', ',');
+  const zeilen = [['Datum', 'Status', 'Stunden', 'Betrag (EUR)']];
+  for (const z of [...k.zeilen].sort((a, b) => a.datum.localeCompare(b.datum))) {
+    zeilen.push([datumDe(z.datum), z.status, zahlDe(z.stunden), betrag(z.stunden * e.satz)]);
+  }
+  const zahlungen = Daten.listeAlle('kontoEintraege').filter((x) => x.art === 'zahlung')
+    .sort((a, b) => a.datum.localeCompare(b.datum));
+  for (const x of zahlungen) zeilen.push([datumDe(x.datum), 'Zahlung erhalten', '', `-${betrag(x.betrag)}`]);
+  zeilen.push([]);
+  zeilen.push(['Verdient', '', zahlDe(k.stunden), betrag(k.verdient)]);
+  zeilen.push(['Bezahlt', '', '', betrag(k.bezahlt)]);
+  zeilen.push(['Offen', '', '', betrag(k.offen)]);
+
+  const text = '﻿' + zeilen
+    .map((zeile) => zeile.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+    .join('\r\n');
+  dateiHerunterladen(`abrechnung-${heuteIso()}.csv`, text, 'text/csv;charset=utf-8');
+  zeigeToast('Abrechnung wird heruntergeladen');
 }
 
 /** Formular für einen Konto-Eintrag. x = null bedeutet „neu“, datumVorgabe füllt das Datum vor. */
@@ -1650,8 +1754,8 @@ function oeffneKontoEintrag(x, datumVorgabe) {
   const f = {
     datum: x?.datum || datumVorgabe || heuteIso(),
     art: x?.art || 'uebernommen',
-    dauer: String(x?.dauer ?? e0.dauer).replace('.', ','),
-    betrag: x && x.betrag ? String(x.betrag).replace('.', ',') : '',
+    dauer: zahlDe(x?.dauer ?? e0.dauer),
+    betrag: x && x.betrag ? zahlDe(x.betrag) : '',
     notiz: x?.notiz || '',
   };
   const fehler = el('p', { class: 'fehler' });
@@ -1692,7 +1796,7 @@ function oeffneKontoEintrag(x, datumVorgabe) {
   oeffneSheet(x ? 'Eintrag bearbeiten' : 'Neuer Eintrag', inhalt, null);
 }
 
-/** Löscht einen Konto-Eintrag (nach Nachfrage). */
+/** Löscht einen Konto-Eintrag. */
 async function kontoEintragLoeschenMitFrage(x) {
   const ja = await fragen({ titel: 'Eintrag löschen?', text: 'Der Eintrag wird entfernt.', ok: 'Löschen', gefahr: true });
   if (!ja) return;
@@ -1706,7 +1810,7 @@ async function kontoEintragLoeschenMitFrage(x) {
 /** Satz, Dauer und Startdatum des Kontos ändern. */
 function oeffneKontoEinstellungen() {
   const e = kontoEinstellungen();
-  const f = { satz: String(e.satz).replace('.', ','), dauer: String(e.dauer).replace('.', ','), start: e.start || heuteIso() };
+  const f = { satz: zahlDe(e.satz), dauer: zahlDe(e.dauer), start: e.start || heuteIso() };
   const inhalt = el('div', { class: 'stack' },
     feld('Satz in € je Stunde', el('input', {
       class: 'input zahl', type: 'text', inputmode: 'decimal', value: f.satz,
@@ -1741,6 +1845,143 @@ function oeffneKontoEinstellungen() {
   oeffneSheet('Konto-Einstellungen', inhalt, null);
 }
 
+// ==========================================================================
+// 9. EINSTELLUNGEN, SICHERUNG UND START
+// ==========================================================================
+
+/** Erinnerung an die Sicherung: erscheint, wenn die letzte Sicherung 14 Tage oder älter ist. */
+function sicherungKarte() {
+  const jetzt = Date.now();
+  const aufgeschoben = Daten.einstellungLesen('erinnerungAufschieben');
+  if (aufgeschoben && new Date(aufgeschoben).getTime() > jetzt) return null;
+
+  const hatDaten = ['stunden', 'saisonplaene', 'erinnerungen', 'spieler', 'kontoEintraege']
+    .some((name) => Daten.listeAlle(name).length > 0) || Daten.uebungenLesen() !== null;
+  if (!hatDaten) return null;
+
+  const letzte = Daten.einstellungLesen('letzteSicherung');
+  const tage = letzte ? Math.floor((jetzt - new Date(letzte).getTime()) / 86400000) : null;
+  if (tage !== null && tage < 14) return null;
+
+  return el('div', { class: 'karte erinnerung' },
+    el('strong', {}, 'Zeit für eine Sicherung'),
+    el('p', { class: 'muted' }, tage === null
+      ? 'Du hast noch nie eine Sicherung gemacht.'
+      : `Deine letzte Sicherung ist ${tage} Tage her.`),
+    el('p', { class: 'muted' }, 'Auf dem iPhone gehen die Daten verloren, wenn du die App löschst. Eine Sicherung schützt dich davor.'),
+    el('div', { class: 'knopf-reihe' },
+      el('button', { class: 'btn btn-primaer', onclick: exportierenDatei }, 'Jetzt sichern'),
+      el('button', {
+        class: 'btn btn-sekundaer',
+        onclick() {
+          Daten.einstellungSpeichern('erinnerungAufschieben', new Date(Date.now() + 3 * 86400000).toISOString());
+          render();
+        },
+      }, 'In 3 Tagen')));
+}
+
+/** Die Einstellungen (Zahnrad): Sichern, Wiederherstellen, Hinweise, Löschen. */
+function oeffneEinstellungen() {
+  const inhalt = el('div', { class: 'stack' },
+    el('p', { class: 'sektion-titel' }, 'Daten sichern'),
+    el('p', { class: 'muted' },
+      'Lade regelmäßig eine Sicherung herunter. So geht nichts verloren, auch wenn der Browser seine Daten löscht.'),
+    el('button', { class: 'btn btn-sekundaer', onclick: exportierenDatei }, 'Daten exportieren (Datei speichern)'),
+    el('button', { class: 'btn btn-sekundaer', onclick: importierenStarten }, 'Daten importieren'),
+
+    el('p', { class: 'sektion-titel' }, 'Hilfe'),
+    el('button', {
+      class: 'btn btn-sekundaer',
+      onclick() { Daten.einstellungSpeichern('hinweisAus', false); schliesseSheet(); render(); },
+    }, 'Starthinweise wieder anzeigen'),
+
+    el('p', { class: 'sektion-titel' }, 'Gefahrenzone'),
+    el('button', { class: 'btn btn-gefahr', onclick: alleDatenLoeschenMitFrage }, 'Alle Daten löschen'),
+
+    el('p', { class: 'muted' }, 'Tennis Match · Trainer-App, Version 2. Alle Daten bleiben auf deinem Gerät.'));
+
+  oeffneSheet('Einstellungen', inhalt, null);
+}
+
+/** Lädt alle Daten als JSON-Datei herunter. */
+function exportierenDatei() {
+  dateiHerunterladen(`trainer-sicherung-${heuteIso()}.json`, Daten.exportieren(), 'application/json');
+  Daten.einstellungSpeichern('letzteSicherung', new Date().toISOString());
+  zeigeToast('Sicherung wird heruntergeladen');
+  render();
+}
+
+/** Öffnet die Dateiauswahl, liest eine Sicherungsdatei und ersetzt die Daten (nach Nachfrage). */
+function importierenStarten() {
+  const datei = document.createElement('input');
+  datei.type = 'file';
+  datei.accept = '.json,application/json';
+  document.body.append(datei);
+
+  datei.onchange = async () => {
+    const auswahlDatei = datei.files[0];
+    datei.remove();
+    if (!auswahlDatei) return;
+
+    let text;
+    try {
+      text = await auswahlDatei.text();
+    } catch {
+      zeigeToast('Die Datei konnte nicht gelesen werden.');
+      return;
+    }
+
+    const ja = await fragen({
+      titel: 'Daten importieren?',
+      text: 'Alle aktuellen Daten werden durch den Inhalt der Datei ersetzt.',
+      ok: 'Importieren',
+      gefahr: true,
+    });
+    if (!ja) return;
+
+    let zusammenfassung = null;
+    if (versuche(() => { zusammenfassung = Daten.importieren(text); })) {
+      trainer.plan = null;
+      saisonAuswahl = null;
+      saisonForm = null;
+      saisonFormOffen = false;
+      schliesseSheet();
+      zeigeToast(`Importiert: ${zusammenfassung.stunden} Stunden, ${zusammenfassung.spieler} Spieler`);
+      render();
+    }
+  };
+  datei.click();
+}
+
+/** Löscht alle Daten – nur nach zwei Bestätigungen. */
+async function alleDatenLoeschenMitFrage() {
+  const erste = await fragen({
+    titel: 'Alle Daten löschen?',
+    text: 'Alle Stunden, Erinnerungen, Saisonpläne, Spieler und Konto-Einträge werden entfernt.',
+    ok: 'Weiter',
+    gefahr: true,
+  });
+  if (!erste) return;
+
+  const zweite = await fragen({
+    titel: 'Wirklich ganz sicher?',
+    text: 'Das lässt sich nicht rückgängig machen. Exportiere vorher lieber eine Sicherung.',
+    ok: 'Ja, alles löschen',
+    gefahr: true,
+  });
+  if (!zweite) return;
+
+  if (versuche(() => Daten.alleLoeschen())) {
+    trainer.plan = null;
+    saisonAuswahl = null;
+    saisonForm = null;
+    saisonFormOffen = false;
+    schliesseSheet();
+    zeigeToast('Alle Daten gelöscht');
+    render();
+  }
+}
+
 /** Zeichnet den Inhalt des gerade gewählten Tabs neu. */
 function render() {
   document.querySelectorAll('.tab').forEach((t) =>
@@ -1748,7 +1989,13 @@ function render() {
 
   $('titel').textContent = TAB_TITEL[aktiverTab];
 
-  const ansichten = { stunden: ansichtStunden, saison: ansichtSaison, uebungen: ansichtUebungen, spieler: ansichtSpieler, konto: ansichtKonto };
+  const ansichten = {
+    stunden: ansichtStunden,
+    saison: ansichtSaison,
+    uebungen: ansichtUebungen,
+    spieler: ansichtSpieler,
+    konto: ansichtKonto,
+  };
   const ansicht = ansichten[aktiverTab]();
 
   $('inhalt').replaceChildren(...[sicherungKarte(), ansicht].filter(Boolean));
@@ -1770,6 +2017,13 @@ function bindeKnoepfe() {
   $('sheet-zurueck').addEventListener('click', () => {
     if (sheetZurueckFn) sheetZurueckFn();
     else schliesseSheet();
+  });
+
+  // Escape schließt Formulare und Bestätigungen (auch auf dem Mac)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('dialog-hintergrund').hidden) $('dialog-abbrechen').click();
+    else if (!$('sheet-hintergrund').hidden) schliesseSheet();
   });
 }
 

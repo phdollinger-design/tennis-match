@@ -7,15 +7,18 @@
  * Aufbau der gespeicherten Daten (ein einziges JSON-Objekt):
  * {
  *   version: 1,
- *   stunden:      [ { id, datum, gruppe, niveau, ziel, dauer, bloecke, notizen, uebergaben, erstelltAm } ],
- *   erinnerungen: [ { id, datum, text, erledigt, erstelltAm } ],
- *   saisonplaene: [ { id, name, datum, variante, gruppe, niveau, dauer, wochen, erstelltAm } ],
- *   uebungen:     null oder [ { id, name, ziel, min, text } ]   // null = Standardübungen aus app.js
- *   einstellungen: { letzteSicherung, erinnerungAufschieben }
+ *   stunden:         [ { id, datum, gruppe, niveau, ziel, dauer, bloecke, notizen, uebergaben, erstelltAm } ],
+ *   erinnerungen:    [ { id, datum, text, erledigt, erstelltAm } ],
+ *   saisonplaene:    [ { id, name, datum, variante, gruppe, niveau, dauer, wochen, erstelltAm } ],
+ *   spieler:         [ { id, name, niveau, notiz, erstelltAm } ],
+ *   testergebnisse:  [ { id, spielerId, testId, phase, datum, wert, erstelltAm } ],
+ *   kontoEintraege:  [ { id, datum, art, dauer, betrag, notiz, erstelltAm } ],
+ *   uebungen:        null oder [ { id, name, ziel, min, text } ]   // null = Standardübungen aus app.js
+ *   einstellungen:   { letzteSicherung, erinnerungAufschieben, kontoSatz, kontoDauer, kontoStart, favoriten, hinweisAus }
  * }
  */
 
-// Unter diesem Namen liegen alle Daten. "v1" = erste Version des Datenmodells der Trainer-App.
+// Unter diesem Namen liegen alle Daten. Ein defekter Stand wird unter SCHLUESSEL + '-defekt' gesichert.
 const SCHLUESSEL = 'tennis-trainer-v1';
 
 // Die Listen, die es im Datenmodell gibt
@@ -23,23 +26,16 @@ const LISTEN = ['stunden', 'erinnerungen', 'saisonplaene', 'spieler', 'testergeb
 
 /** Ein leerer Datenstand – wird benutzt, wenn noch nichts gespeichert ist. */
 function leer() {
-  return {
-    version: 1,
-    stunden: [],
-    erinnerungen: [],
-    saisonplaene: [],
-    spieler: [],
-    testergebnisse: [],
-    kontoEintraege: [],
-    uebungen: null,
-    einstellungen: {},
-  };
+  const daten = { version: 1, uebungen: null, einstellungen: {} };
+  for (const name of LISTEN) daten[name] = [];
+  return daten;
 }
 
-/** Liest alle Daten aus dem Browser. Ist etwas kaputt, kommt ein leerer Stand zurück. */
+/** Liest alle Daten aus dem Browser. Ist etwas kaputt, wird es gesichert und ein leerer Stand zurückgegeben. */
 function lesen() {
+  let roh = null;
   try {
-    const roh = localStorage.getItem(SCHLUESSEL);
+    roh = localStorage.getItem(SCHLUESSEL);
     if (!roh) return leer();
     const daten = JSON.parse(roh);
     const ergebnis = { ...leer(), ...daten, einstellungen: { ...(daten.einstellungen || {}) } };
@@ -48,6 +44,11 @@ function lesen() {
     return ergebnis;
   } catch (fehler) {
     console.error('Daten konnten nicht gelesen werden:', fehler);
+    try {
+      if (roh) localStorage.setItem(SCHLUESSEL + '-defekt', roh);   // Kopie retten, bevor etwas überschrieben wird
+    } catch {
+      // Speicher voll oder gesperrt: dann ist nichts mehr zu retten
+    }
     return leer();
   }
 }
@@ -68,8 +69,8 @@ function neueId() {
 }
 
 // ---------------------------------------------------------------------------
-// LISTEN (Stunden, Erinnerungen, Saisonpläne)
-// Alle drei funktionieren gleich: Eintrag mit id = ändern, ohne id = neu.
+// LISTEN (Stunden, Erinnerungen, Saisonpläne, Spieler, Testergebnisse, Konto)
+// Alle funktionieren gleich: Eintrag mit id = ändern, ohne id = neu.
 // ---------------------------------------------------------------------------
 
 /** Alle Einträge einer Liste, neueste zuerst nach Datum. */
@@ -138,7 +139,8 @@ export function uebungenZuruecksetzen() {
 
 /** Liest eine Einstellung (z. B. 'letzteSicherung'). Gibt null zurück, wenn es sie nicht gibt. */
 export function einstellungLesen(name) {
-  return lesen().einstellungen[name] || null;
+  const wert = lesen().einstellungen[name];
+  return wert === undefined ? null : wert;
 }
 
 /** Speichert eine Einstellung. */
@@ -157,7 +159,11 @@ export function exportieren() {
   return JSON.stringify(lesen(), null, 2);
 }
 
-/** Ersetzt alle Daten durch den Inhalt einer Sicherungsdatei. Wirft einen Fehler, wenn die Datei nicht passt. */
+/**
+ * Ersetzt alle Daten durch den Inhalt einer Sicherungsdatei.
+ * Gibt eine Zusammenfassung zurück, z. B. { stunden: 3, spieler: 2 }.
+ * Wirft einen Fehler, wenn die Datei nicht zur App passt.
+ */
 export function importieren(text) {
   let daten;
   try {
@@ -165,13 +171,22 @@ export function importieren(text) {
   } catch {
     throw new Error('Die Datei ist kein gültiges JSON.');
   }
-  if (!daten || !Array.isArray(daten.stunden)) {
+  if (!daten || typeof daten !== 'object' || !Array.isArray(daten.stunden)) {
     throw new Error('Diese Datei passt nicht zur Trainer-App.');
+  }
+  for (const name of LISTEN) {
+    if (daten[name] !== undefined && !Array.isArray(daten[name])) {
+      throw new Error(`In der Datei ist „${name}“ fehlerhaft.`);
+    }
   }
   const ergebnis = { ...leer(), ...daten, einstellungen: { ...(daten.einstellungen || {}) } };
   for (const name of LISTEN) ergebnis[name] = Array.isArray(daten[name]) ? daten[name] : [];
   ergebnis.uebungen = Array.isArray(daten.uebungen) ? daten.uebungen : null;
   schreiben(ergebnis);
+
+  const zusammenfassung = {};
+  for (const name of LISTEN) zusammenfassung[name] = ergebnis[name].length;
+  return zusammenfassung;
 }
 
 /** Löscht ALLE Daten. Wird nur nach doppelter Bestätigung in der App aufgerufen. */
